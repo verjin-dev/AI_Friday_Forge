@@ -616,12 +616,12 @@
   background: var(--canvas-soft);
 }
 
-.osm-canvas .leaflet-tile {
-  filter: saturate(0.8) brightness(0.78) contrast(1.08);
+:root[data-theme="dark"] .osm-canvas .leaflet-tile {
+  filter: none;
 }
 
 :root[data-theme="light"] .osm-canvas .leaflet-tile {
-  filter: saturate(0.92) contrast(1.02);
+  filter: none;
 }
 
 .osm-canvas .leaflet-control-attribution {

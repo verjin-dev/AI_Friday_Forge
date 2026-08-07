@@ -32,6 +32,18 @@ const MAP_PROVIDERS = [
 
 const KERALA_VIEWBOX = "74.7,12.9,77.9,8.0";
 
+const OSM_TILES = {
+  dark: {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  },
+  light: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: "&copy; OpenStreetMap contributors",
+  },
+};
+
 function formatDistance(meters) {
   if (!Number.isFinite(meters)) return "-";
   if (meters < 1000) return `${Math.round(meters)} m`;
@@ -108,6 +120,39 @@ const DARK_STYLE = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#0a1018" }] },
 ];
 
+const LIGHT_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#f3f6fa" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#526174" }] },
+  {
+    featureType: "administrative",
+    elementType: "geometry",
+    stylers: [{ color: "#c8d1dc" }],
+  },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#ffffff" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#dfe8f2" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#6c7a89" }],
+  },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#d8edf7" }] },
+];
+
+function getThemeMode() {
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+}
+
 /** Load the Maps JS API exactly once per page. */
 let loaderPromise = null;
 function loadGoogleMaps() {
@@ -168,6 +213,7 @@ function OpenStreetMap({
   selectedTruck,
   routeRequest,
   chosen,
+  themeMode,
   onSuggestions,
   onSelectTruck,
   onStatus,
@@ -175,6 +221,7 @@ function OpenStreetMap({
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const tileRef = useRef(null);
   const layerRef = useRef(null);
   const locationRef = useRef(null);
 
@@ -188,9 +235,10 @@ function OpenStreetMap({
       attributionControl: false,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    const tiles = OSM_TILES[themeMode] || OSM_TILES.dark;
+    tileRef.current = L.tileLayer(tiles.url, {
       maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors",
+      attribution: tiles.attribution,
     }).addTo(mapRef.current);
 
     L.control.attribution({ prefix: false }).addTo(mapRef.current);
@@ -224,9 +272,18 @@ function OpenStreetMap({
       locationRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
+      tileRef.current = null;
       layerRef.current = null;
     };
   }, [actionsRef, onStatus]);
+
+  useEffect(() => {
+    if (!mapRef.current || !tileRef.current) return;
+    const tiles = OSM_TILES[themeMode] || OSM_TILES.dark;
+    tileRef.current.setUrl(tiles.url);
+    tileRef.current.options.attribution = tiles.attribution;
+    mapRef.current.attributionControl?.setPrefix(false);
+  }, [themeMode]);
 
   useEffect(() => {
     if (!mapRef.current || !layerRef.current) return undefined;
@@ -406,6 +463,7 @@ export default function FleetMap({
   const [suggestions, setSuggestions] = useState([]);
   const [chosen, setChosen] = useState(0);
   const [query, setQuery] = useState("");
+  const [themeMode, setThemeMode] = useState(getThemeMode);
 
   const provider = mapProvider || localProvider;
   const setProvider = useCallback(
@@ -449,6 +507,15 @@ export default function FleetMap({
     overlaysRef.current = [];
   }, []);
 
+  useEffect(() => {
+    const observer = new MutationObserver(() => setThemeMode(getThemeMode()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
   // --- initialise ---------------------------------------------------------
   useEffect(() => {
     if (provider !== "google") return undefined;
@@ -461,7 +528,7 @@ export default function FleetMap({
         mapRef.current = new google.maps.Map(containerRef.current, {
           center: KERALA_CENTRE,
           zoom: 7,
-          styles: DARK_STYLE,
+          styles: themeMode === "dark" ? DARK_STYLE : LIGHT_STYLE,
           disableDefaultUI: true,
           gestureHandling: "greedy",
         });
@@ -515,6 +582,13 @@ export default function FleetMap({
       cancelled = true;
     };
   }, [onError, provider, report]);
+
+  useEffect(() => {
+    if (provider !== "google" || !mapRef.current) return;
+    mapRef.current.setOptions({
+      styles: themeMode === "dark" ? DARK_STYLE : LIGHT_STYLE,
+    });
+  }, [provider, themeMode]);
 
   // --- fleet markers, clustered ------------------------------------------
   useEffect(() => {
@@ -745,6 +819,7 @@ export default function FleetMap({
           selectedTruck={selectedTruck}
           routeRequest={routeRequest}
           chosen={chosen}
+          themeMode={themeMode}
           onSuggestions={setSuggestions}
           onSelectTruck={onSelectTruck}
           onStatus={report}

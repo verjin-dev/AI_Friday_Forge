@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 
 import DriverRail from "../components/driver/DriverRail.jsx";
+import DriverDataSlider from "../components/vehicle/DriverDataSlider.jsx";
+import DriverCockpit3D from "../components/vehicle/DriverCockpit3D.jsx";
 import FleetMap from "../components/FleetMap.jsx";
-import NavigationOverlay from "../components/vehicle/NavigationOverlay.jsx";
 import Toast from "../components/Toast.jsx";
 import TripTimeline from "../components/vehicle/TripTimeline.jsx";
 import { ROLES } from "../config/demoAuth.js";
@@ -94,11 +95,23 @@ export default function VehicleDashboard({
         onToggleTheme={onToggleTheme}
       />
 
-      <main className="vehicle-main">
-        <section className="card nav-card">
-          <NavigationOverlay truck={truck} />
+      <main className="vehicle-main vehicle-cockpit-layout">
+        <DriverCockpit3D
+          truck={truck}
+          alerts={alerts}
+          loading={loading}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
+
+        <section className="card cockpit-map-card">
+          <div className="panel-head">
+            <RouteIcon size={15} aria-hidden="true" style={{ color: "var(--cyan)" }} />
+            <h3>Live route map</h3>
+            <span className="sub">{truck?.route || "current assignment"}</span>
+          </div>
           {loading ? (
-            <p className="empty-state">Loading the current trip…</p>
+            <p className="empty-state">Loading the route map...</p>
           ) : (
             <FleetMap
               trucks={truck ? [truck] : []}
@@ -108,6 +121,16 @@ export default function VehicleDashboard({
             />
           )}
         </section>
+
+        <DriverDataSlider
+          truck={truck}
+          alerts={alerts}
+          session={session}
+          theme={theme}
+          onNavigate={onNavigate}
+          onNotify={notify}
+          onToggleTheme={onToggleTheme}
+        />
 
         {alerts.length > 0 && (
           <section className="card">
