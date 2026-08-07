@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "logipilot-ai-dashboard": "file:.."
+  }
+}

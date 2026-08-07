@@ -8,7 +8,7 @@ export default function DriverRail({ session, truck, trucks, onSelect, onSignOut
           <Truck size={16} strokeWidth={2} />
         </span>
         <span className="brand-text">
-          <h3>LogiPilot</h3>
+          <h3>LogiPilot Ai</h3>
           <span style={{ fontSize: 11, color: "var(--text-faint)" }}>
             {session?.detail || "In-vehicle console"}
           </span>

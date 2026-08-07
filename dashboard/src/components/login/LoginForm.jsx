@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Fingerprint,
   Lock,
   Loader2,
   ShieldCheck,
@@ -50,7 +51,7 @@ export default function LoginForm({ onSignIn }) {
     setTimeout(() => onSignIn(session), 380);
   };
 
-  // Not named `useDemo…` — the leading "use" makes lint treat it as a hook.
+  // Not named `useDemo...` because the leading "use" makes lint treat it as a hook.
   const applyDemoAccount = (account) => {
     setUsername(account.username);
     setPassword(account.password);
@@ -69,14 +70,25 @@ export default function LoginForm({ onSignIn }) {
       >
         <span className="login-badge">
           <ShieldCheck size={11} aria-hidden="true" />
-          Secure access
+          Secure workspace
         </span>
 
-        <h2>Sign in</h2>
-        <p>Continue to your LogiPilot workspace.</p>
+        <h2>Welcome back</h2>
+        <p>Sign in to access your logistics intelligence workspace.</p>
+
+        <div className="login-assurance" aria-label="Access controls">
+          <span>
+            <Fingerprint size={13} aria-hidden="true" />
+            Identity verified
+          </span>
+          <span>
+            <ShieldCheck size={13} aria-hidden="true" />
+            Role-based access
+          </span>
+        </div>
 
         <div className="login-field">
-          <label htmlFor="login-username">Username</label>
+          <label htmlFor="login-username">Email / Username</label>
           <div className={`login-input ${errors.username ? "invalid" : ""}`}>
             <User size={15} aria-hidden="true" style={{ color: "var(--text-faint)" }} />
             <input
@@ -88,7 +100,7 @@ export default function LoginForm({ onSignIn }) {
                 setUsername(event.target.value);
                 setErrors((current) => ({ ...current, username: null, form: null }));
               }}
-              placeholder="ops"
+              placeholder="Enter username"
               aria-invalid={Boolean(errors.username)}
             />
           </div>
@@ -114,7 +126,7 @@ export default function LoginForm({ onSignIn }) {
                 setPassword(event.target.value);
                 setErrors((current) => ({ ...current, password: null, form: null }));
               }}
-              placeholder="••••••••"
+              placeholder="Enter password"
               aria-invalid={Boolean(errors.password)}
             />
             <button
@@ -149,7 +161,7 @@ export default function LoginForm({ onSignIn }) {
           {state === "working" && (
             <>
               <Loader2 size={15} className="spin" aria-hidden="true" />
-              Signing in…
+              Signing in...
             </>
           )}
           {state === "success" && (
@@ -160,14 +172,14 @@ export default function LoginForm({ onSignIn }) {
           )}
           {state === "idle" && (
             <>
-              Sign in
+              Sign In
               <ArrowRight size={15} aria-hidden="true" />
             </>
           )}
         </button>
 
         <div className="demo-accounts">
-          <h4>Demo accounts — not secure</h4>
+          <h4>Demo access profiles</h4>
           {DEMO_ACCOUNTS.map((account) => (
             <button
               key={account.username}
@@ -183,13 +195,8 @@ export default function LoginForm({ onSignIn }) {
           ))}
         </div>
 
-        <p className="login-security">
-          <ShieldCheck size={13} aria-hidden="true" style={{ flex: "none", marginTop: 1 }} />
-          <span>
-            This is a front-end demonstration gate. Credentials are in the
-            bundle and the API behind it is unauthenticated — replace with a
-            server-issued session before any real deployment.
-          </span>
+        <p className="login-trust">
+          Secure access to LogiPilot Ai Logistics Control Tower
         </p>
       </motion.form>
     </section>

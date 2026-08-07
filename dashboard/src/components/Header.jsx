@@ -25,7 +25,7 @@ export default function Header({
     <header className="topbar card">
       <div>
         <nav className="crumbs" aria-label="Breadcrumb">
-          <span>Logipilot</span>
+          <span>LogiPilot Ai</span>
           <ChevronRight size={11} aria-hidden="true" />
           <span>Operations</span>
           <ChevronRight size={11} aria-hidden="true" />
