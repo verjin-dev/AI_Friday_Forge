@@ -26,8 +26,8 @@ ENV/
 test_env/
 
 # Environment files
-.env
-.env.*
+# .env
+# .env.*
 !.env.example
 dashboard/.env
 dashboard/.env.*
