@@ -210,6 +210,11 @@ input validation → PI → PII → prompt injection → jailbreak → role → 
 
 ## Setup
 
+> Full step-by-step instructions for a new machine are in
+> **[SETUP.md](SETUP.md)**, including troubleshooting and what runs without
+> what. Run `python scripts/verify_setup.py` at any point to check the
+> environment. The condensed version follows.
+
 ### 1. Neo4j
 
 Start a local Neo4j instance, then set credentials in `.env`.
