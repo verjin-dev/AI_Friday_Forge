@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+test_env/
+
+# Environment files
+.env
+.env.*
+!.env.example
+dashboard/.env
+dashboard/.env.*
+!dashboard/.env.example
+
+# Logs and runtime files
+*.log
+*.pid
+*.seed
+*.out
+*.err
+
+# Data / local generated artifacts
+data/runs.jsonl
+data/security_audit.jsonl
+data/route_decisions.jsonl
+data/learning.jsonl
+data/geocache.json
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+dashboard/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Frontend build outputs
+frontend/dist/
+dashboard/dist/
+dist/
+coverage/
+
+# Vite
+.vite/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

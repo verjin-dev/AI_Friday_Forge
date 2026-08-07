@@ -1,0 +1,56 @@
+incident_id,location,zone,affected_route,incidents,incident_time,traffic_peak_period
+I001,Kazhakkoottam,TVM North,NH66,Accident near junction,2026-08-07 06:45,Mid Peak
+I002,Attingal,TVM North,NH66,Heavy rain causing slow traffic,2026-08-07 07:10,High Peak
+I003,Venjaramoodu,TVM Inland,MC Road,Road work in progress,2026-08-07 08:00,High Peak
+I004,East Fort,TVM Core,MG Road,Waterlogging in city section,2026-08-07 08:20,High Peak
+I005,Neyyattinkara,TVM South,NH66,Broken down vehicle on roadside,2026-08-07 08:40,High Peak
+I006,Pattom,TVM Core,City Road,Signal issue at busy junction,2026-08-07 09:00,High Peak
+I007,Balaramapuram,TVM South,NH66,Road blocked temporarily,2026-08-07 09:15,High Peak
+I008,Nedumangad,TVM Inland,SH2,Hill road affected,2026-08-07 09:35,High Peak
+I009,Sreekaryam,TVM North,Medical College Road,Congestion during peak hours,2026-08-07 09:50,High Peak
+I010,Varkala,TVM North,NH66,Bridge maintenance activity,2026-08-07 10:05,Mid Peak
+I011,Paravur,Kollam North,NH66,Earlier accident site cleared,2026-08-07 10:20,Mid Peak
+I012,Kollam,Kollam Core,NH66,Heavy rain and low visibility,2026-08-07 10:35,Mid Peak
+I013,Kottarakkara,Kollam Inland,MC Road,Planned road maintenance,2026-08-07 10:50,Mid Peak
+I014,Chathannoor,Kollam North,NH66,Tree fall blocking one side,2026-08-07 11:05,Mid Peak
+I015,Kundara,Kollam Inland,MC Road,Flash flood impact,2026-08-07 11:20,Mid Peak
+I016,Karunagappally,Kollam North,NH66,Accident causing slow movement,2026-08-07 11:35,Mid Peak
+I017,Kayamkulam,Alappuzha North,NH66,Vehicle breakdown on shoulder,2026-08-07 11:50,Mid Peak
+I018,Haripad,Alappuzha North,NH66,Regular congestion,2026-08-07 12:05,Off Peak
+I019,Ambalappuzha,Alappuzha Core,NH66,Waterlogging after rain,2026-08-07 12:20,Off Peak
+I020,Alappuzha,Alappuzha Core,NH66,Signal issue resolved,2026-08-07 12:35,Off Peak
+I021,Cherthala,Alappuzha South,NH66,Road block with detour,2026-08-07 12:50,Off Peak
+I022,Aroor,Alappuzha South,NH66,Bridge repair planned,2026-08-07 13:05,Off Peak
+I023,Thakazhy,Alappuzha Inland,AC Road,Drain overflow due to rain,2026-08-07 13:20,Off Peak
+I024,Changanassery,Kottayam West,MC Road,Major accident response,2026-08-07 13:35,Off Peak
+I025,Kottayam,Kottayam Core,MC Road,Road work in town,2026-08-07 13:50,Off Peak
+I026,Ettumanoor,Kottayam North,MC Road,Bottleneck near junction,2026-08-07 14:05,Off Peak
+I027,Pala,Kottayam East,SH32,Vehicle issue cleared,2026-08-07 14:20,Off Peak
+I028,Kalathipady,Kottayam Core,KK Road,Minor waterlogging,2026-08-07 14:35,Off Peak
+I029,Mundakayam,Kottayam East,KK Road,Landslip risk on ghat approach,2026-08-07 14:50,Off Peak
+I030,Kanjirappally,Kottayam East,KK Road,Intersection accident,2026-08-07 15:05,Mid Peak
+I031,Kumarakom,Kottayam West,Kumarakom Road,Access restriction on route,2026-08-07 15:20,Mid Peak
+I032,Vaikom,Kottayam West,Vaikom Road,Surface water on road,2026-08-07 15:35,Mid Peak
+I033,Kaduthuruthy,Kottayam North,MC Road,Planned routine work,2026-08-07 15:50,Mid Peak
+I034,Thalayolaparambu,Kottayam North,SH15,Signal under manual control,2026-08-07 16:05,High Peak
+I035,Mavelikara,Alappuzha Inland,MC Road,Resolved accident,2026-08-07 16:20,High Peak
+I036,Chengannur,Alappuzha Inland,MC Road,Congestion due to mixed traffic,2026-08-07 16:35,High Peak
+I037,Sasthamkotta,Kollam Inland,State Highway,Repair requiring alternate path,2026-08-07 16:50,High Peak
+I038,Parassala,TVM South,NH66,Minor vehicle breakdown,2026-08-07 17:05,High Peak
+I039,Chirayinkeezhu,TVM North,Coastal Road,Bus delay due to waterlogging,2026-08-07 17:20,High Peak
+I040,Kilimanoor,TVM Inland,MC Road,Shoulder closure for work,2026-08-07 17:35,High Peak
+I041,Kallambalam,TVM North,NH66,Heavy rain and major delay,2026-08-07 17:50,High Peak
+I042,Kottiyam,Kollam North,NH66,Multiple vehicle accident,2026-08-07 18:05,High Peak
+I043,Ochira,Kollam North,NH66,Holiday congestion,2026-08-07 18:20,High Peak
+I044,Pathanapuram,Kollam Inland,State Highway,Tree fall obstruction,2026-08-07 18:35,High Peak
+I045,Anchal,Kollam Inland,State Highway,Resolved road block,2026-08-07 18:50,High Peak
+I046,Aymanam,Kottayam West,Local Road,Signal issue with short delay,2026-08-07 19:05,Mid Peak
+I047,Vechoor,Kottayam West,Local Road,Water drained after rain,2026-08-07 19:20,Mid Peak
+I048,Kuravilangad,Kottayam East,MC Road,Bridge repair with traffic control,2026-08-07 19:35,Mid Peak
+I049,Pampady,Kottayam Core,KK Road,Wet surface due to rain,2026-08-07 19:50,Mid Peak
+I050,Thiruvananthapuram,TVM Core,City Network,Severe central city accident,2026-08-07 20:05,Off Peak
+I051,Erattupetta,Kottayam East,SH32,Road excavation zone,2026-08-07 20:20,Off Peak
+I052,Mannar,Alappuzha Inland,Local Road,Narrow stretch congestion,2026-08-07 20:35,Off Peak
+I053,Punalur,Kollam Inland,State Highway,Breakdown under towing,2026-08-07 20:50,Off Peak
+I054,Kollam,Kollam Core,NH66,Traffic suspension in flooded stretch,2026-08-07 21:05,Off Peak
+I055,Nedumangad,TVM Inland,SH2,Preventive closure for landslip risk,2026-08-07 21:20,Off Peak

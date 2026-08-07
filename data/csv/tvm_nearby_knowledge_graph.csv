@@ -1,0 +1,9 @@
+node_id,node_name,node_category,related_to,relationship_type,attribute_1,attribute_2,attribute_3
+L005,Kollam,Location,Attingal,ROAD_CONNECTS,distance_km=30,road_name=NH66,near_tvm=yes
+L006,Attingal,Location,Thiruvananthapuram,ROAD_CONNECTS,distance_km=32,road_name=NH66,near_tvm=yes
+L005,Kollam,Location,Thiruvananthapuram,ALTERNATE_ROUTE,via=Kottarakkara,extra_distance_km=15,near_tvm=yes
+I002,Heavy Rain,Incident,Kollam,OCCURS_AT,severity=Critical,status=Active,impact_zone=near_tvm_corridor
+I003,Road Work,Incident,Attingal,OCCURS_AT,severity=Medium,status=Active,impact_zone=near_tvm_corridor
+Thiruvananthapuram,Thiruvananthapuram,Location,Attingal,CONNECTED_FROM,distance_km=32,road_name=NH66,hub=tvm
+Kollam,Kollam,Location,I002,HAS_INCIDENT,incident_type=Heavy Rain,severity=Critical,status=Active
+Attingal,Attingal,Location,I003,HAS_INCIDENT,incident_type=Road Work,severity=Medium,status=Active

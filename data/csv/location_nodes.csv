@@ -1,0 +1,56 @@
+location_id,name,type,district,zone
+L001,Thiruvananthapuram,City,Thiruvananthapuram,Core
+L002,Kazhakkoottam,Town,Thiruvananthapuram,North Corridor
+L003,Sreekaryam,Town,Thiruvananthapuram,Core
+L004,Pattom,Town,Thiruvananthapuram,Core
+L005,Palayam,Town,Thiruvananthapuram,Core
+L006,East Fort,Town,Thiruvananthapuram,Core
+L007,Neyyattinkara,Town,Thiruvananthapuram,South Corridor
+L008,Balaramapuram,Town,Thiruvananthapuram,South Corridor
+L009,Parassala,Town,Thiruvananthapuram,Border South
+L010,Attingal,Town,Thiruvananthapuram,North Corridor
+L011,Varkala,Town,Thiruvananthapuram,North Coastal
+L012,Kilimanoor,Town,Thiruvananthapuram,North Inland
+L013,Kallambalam,Town,Thiruvananthapuram,North Corridor
+L014,Venjaramoodu,Town,Thiruvananthapuram,North Inland
+L015,Nedumangad,Town,Thiruvananthapuram,North Inland
+L016,Chirayinkeezhu,Town,Thiruvananthapuram,North Coastal
+L017,Kollam,City,Kollam,Core
+L018,Paravur,Town,Kollam,South Corridor
+L019,Chathannoor,Town,Kollam,South Corridor
+L020,Kottiyam,Town,Kollam,Core
+L021,Kundara,Town,Kollam,Inland
+L022,Kottarakkara,Town,Kollam,Inland
+L023,Karunagappally,Town,Kollam,North Corridor
+L024,Ochira,Town,Kollam,North Corridor
+L025,Sasthamkotta,Town,Kollam,Inland
+L026,Anchal,Town,Kollam,Inland
+L027,Punalur,Town,Kollam,East Corridor
+L028,Pathanapuram,Town,Kollam,East Corridor
+L029,Kayamkulam,Town,Alappuzha,South Corridor
+L030,Haripad,Town,Alappuzha,South Corridor
+L031,Ambalappuzha,Town,Alappuzha,Core
+L032,Alappuzha,City,Alappuzha,Core
+L033,Cherthala,Town,Alappuzha,North Corridor
+L034,Mavelikara,Town,Alappuzha,Inland
+L035,Chengannur,Town,Alappuzha,Inland
+L036,Aroor,Town,Alappuzha,North Corridor
+L037,Karthikappally,Town,Alappuzha,South Corridor
+L038,Thakazhy,Town,Alappuzha,Inland
+L039,Mannar,Town,Alappuzha,Inland
+L040,Changanassery,Town,Kottayam,South Corridor
+L041,Kottayam,City,Kottayam,Core
+L042,Ettumanoor,Town,Kottayam,Core
+L043,Pala,Town,Kottayam,East Corridor
+L044,Vaikom,Town,Kottayam,North Corridor
+L045,Kuravilangad,Town,Kottayam,East Corridor
+L046,Kanjirappally,Town,Kottayam,East Corridor
+L047,Mundakayam,Town,Kottayam,East Corridor
+L048,Kumarakom,Town,Kottayam,Core
+L049,Pampady,Town,Kottayam,East Corridor
+L050,Thalayolaparambu,Town,Kottayam,North Corridor
+L051,Kaduthuruthy,Town,Kottayam,North Corridor
+L052,Erattupetta,Town,Kottayam,East Corridor
+L053,Vechoor,Town,Kottayam,North Corridor
+L054,Kalathipady,Town,Kottayam,Core
+L055,Aymanam,Town,Kottayam,Core

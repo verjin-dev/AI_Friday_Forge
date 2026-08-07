@@ -1,0 +1,61 @@
+relation_id,from,to,distance_km,road_name,relation_type
+R001,Thiruvananthapuram,Pattom,4,City Road,CONNECTS
+R002,Pattom,Sreekaryam,5,Medical College Road,CONNECTS
+R003,Sreekaryam,Kazhakkoottam,8,NH66,CONNECTS
+R004,Thiruvananthapuram,East Fort,3,MG Road,CONNECTS
+R005,East Fort,Balaramapuram,15,NH66,CONNECTS
+R006,Balaramapuram,Neyyattinkara,10,NH66,CONNECTS
+R007,Neyyattinkara,Parassala,17,NH66,CONNECTS
+R008,Kazhakkoottam,Attingal,22,NH66,CONNECTS
+R009,Attingal,Kallambalam,10,NH66,CONNECTS
+R010,Kallambalam,Varkala,16,NH66,CONNECTS
+R011,Varkala,Paravur,14,NH66,CONNECTS
+R012,Paravur,Chathannoor,12,NH66,CONNECTS
+R013,Chathannoor,Kollam,16,NH66,CONNECTS
+R014,Kollam,Kottiyam,8,NH66,CONNECTS
+R015,Kottiyam,Karunagappally,28,NH66,CONNECTS
+R016,Karunagappally,Ochira,10,NH66,CONNECTS
+R017,Ochira,Kayamkulam,8,NH66,CONNECTS
+R018,Kayamkulam,Haripad,14,NH66,CONNECTS
+R019,Haripad,Ambalappuzha,16,NH66,CONNECTS
+R020,Ambalappuzha,Alappuzha,8,NH66,CONNECTS
+R021,Alappuzha,Cherthala,22,NH66,CONNECTS
+R022,Cherthala,Aroor,17,NH66,CONNECTS
+R023,Kayamkulam,Mavelikara,12,MC Road,CONNECTS
+R024,Mavelikara,Chengannur,12,MC Road,CONNECTS
+R025,Chengannur,Changanassery,24,MC Road,CONNECTS
+R026,Changanassery,Kottayam,18,MC Road,CONNECTS
+R027,Kottayam,Ettumanoor,12,MC Road,CONNECTS
+R028,Ettumanoor,Kuravilangad,16,MC Road,CONNECTS
+R029,Kuravilangad,Pala,15,State Highway 32,CONNECTS
+R030,Kottayam,Kalathipady,5,KK Road,CONNECTS
+R031,Kalathipady,Pampady,11,KK Road,CONNECTS
+R032,Pampady,Kanjirappally,21,KK Road,CONNECTS
+R033,Kanjirappally,Mundakayam,19,KK Road,CONNECTS
+R034,Pala,Erattupetta,12,State Highway 32,CONNECTS
+R035,Kottayam,Kumarakom,14,Kumarakom Road,CONNECTS
+R036,Kumarakom,Aymanam,8,Local Road,CONNECTS
+R037,Aymanam,Vechoor,11,Local Road,CONNECTS
+R038,Vechoor,Vaikom,14,Vaikom Road,CONNECTS
+R039,Vaikom,Thalayolaparambu,10,SH15,CONNECTS
+R040,Thalayolaparambu,Kaduthuruthy,9,MC Road,CONNECTS
+R041,Attingal,Chirayinkeezhu,7,Coastal Road,CONNECTS
+R042,Chirayinkeezhu,Varkala,14,Coastal Road,CONNECTS
+R043,Attingal,Kilimanoor,15,MC Road,CONNECTS
+R044,Kilimanoor,Venjaramoodu,18,MC Road,CONNECTS
+R045,Venjaramoodu,Nedumangad,17,SH1,CONNECTS
+R046,Nedumangad,Thiruvananthapuram,18,SH2,CONNECTS
+R047,Kollam,Kundara,14,MC Road,CONNECTS
+R048,Kundara,Kottarakkara,18,MC Road,CONNECTS
+R049,Kottarakkara,Sasthamkotta,22,State Highway,CONNECTS
+R050,Sasthamkotta,Karunagappally,16,State Highway,CONNECTS
+R051,Kollam,Anchal,24,State Highway,CONNECTS
+R052,Anchal,Punalur,18,State Highway,CONNECTS
+R053,Punalur,Pathanapuram,14,State Highway,CONNECTS
+R054,Pathanapuram,Kottarakkara,28,State Highway,CONNECTS
+R055,Haripad,Karthikappally,6,Local Road,CONNECTS
+R056,Karthikappally,Kayamkulam,7,Local Road,CONNECTS
+R057,Alappuzha,Thakazhy,10,Local Road,CONNECTS
+R058,Thakazhy,Changanassery,23,AC Road,CONNECTS
+R059,Mannar,Chengannur,11,Local Road,CONNECTS
+R060,Mannar,Changanassery,20,Local Road,CONNECTS

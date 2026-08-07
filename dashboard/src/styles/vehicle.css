@@ -1,0 +1,316 @@
+/* ------------------------------------------------------- vehicle console */
+.vehicle {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px;
+}
+
+.driver-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px 13px;
+  border-radius: 16px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-deep);
+  backdrop-filter: blur(16px);
+  align-self: start;
+  position: sticky;
+  top: 14px;
+  max-height: calc(100vh - 28px);
+  overflow-y: auto;
+}
+
+.driver-rail h3 {
+  font-size: 14px;
+}
+
+.rail-block {
+  padding: 11px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.rail-block .caption {
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 5px;
+}
+
+.rail-block .value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.rail-block .sub {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.vehicle-main {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.nav-card {
+  position: relative;
+  min-height: 430px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 6;
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  pointer-events: none;
+  flex-wrap: wrap;
+}
+
+.manoeuvre {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 16px;
+  border-radius: 13px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-deep);
+  backdrop-filter: blur(18px);
+  flex: 1 1 260px;
+  pointer-events: auto;
+}
+
+.manoeuvre-icon {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(86, 216, 238, 0.14);
+  color: var(--cyan);
+}
+
+.manoeuvre .distance {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.manoeuvre .instruction {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.journey-stats {
+  display: flex;
+  gap: 10px;
+  padding: 11px 15px;
+  border-radius: 13px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-deep);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
+}
+
+.journey-stat {
+  min-width: 74px;
+}
+
+.journey-stat .k {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.journey-stat .v {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 1px;
+}
+
+/* --- trip timeline ---------------------------------------------------- */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 6px 0;
+}
+
+.timeline-stop {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 11px;
+  padding: 8px 16px;
+  position: relative;
+  align-items: center;
+}
+
+.timeline-stop:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: 60%;
+  height: 100%;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-stop.departed:not(:last-child)::before {
+  background: var(--emerald);
+  opacity: 0.5;
+}
+
+.timeline-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--canvas-soft);
+  z-index: 1;
+  justify-self: center;
+}
+
+.timeline-stop.departed .timeline-dot {
+  border-color: var(--emerald);
+  background: var(--emerald);
+}
+
+.timeline-stop.current .timeline-dot {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(86, 216, 238, 0.18);
+}
+
+.timeline-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.timeline-stop.upcoming .timeline-name {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.timeline-eta {
+  font-size: 11.5px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+/* --- supporting cards -------------------------------------------------- */
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  gap: 14px;
+}
+
+.kv-list {
+  padding: 4px 0 10px;
+}
+
+.kv-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px;
+  font-size: 12.5px;
+}
+
+.kv-item .k {
+  color: var(--text-secondary);
+}
+
+.kv-item .v {
+  font-weight: 500;
+  text-align: right;
+}
+
+.kv-item .v.muted {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.driver-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+.route-alert {
+  display: flex;
+  gap: 11px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--amber);
+  background: rgba(247, 190, 105, 0.06);
+}
+
+.route-alert.critical {
+  border-left-color: var(--rose);
+  background: rgba(251, 132, 151, 0.07);
+}
+
+/* -------------------------------------------------------------- responsive */
+@media (max-width: 1020px) {
+  .vehicle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .driver-rail {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .driver-rail .rail-block {
+    flex: 1 1 160px;
+  }
+}
+
+@media (max-width: 640px) {
+  .vehicle {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .nav-overlay {
+    position: static;
+    padding: 12px 12px 0;
+    flex-direction: column;
+  }
+
+  .nav-card {
+    min-height: 0;
+  }
+
+  .journey-stats {
+    overflow-x: auto;
+  }
+}

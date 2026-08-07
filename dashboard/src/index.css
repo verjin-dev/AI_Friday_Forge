@@ -1,0 +1,179 @@
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --canvas: #0b1018;
+  --canvas-soft: #0e141e;
+  --surface: rgba(19, 28, 40, 0.82);
+  --surface-strong: rgba(24, 34, 48, 0.94);
+  --surface-muted: rgba(28, 39, 54, 0.6);
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text: #eff7fa;
+  --text-secondary: #9aabba;
+  --text-faint: #6b7d8d;
+
+  --indigo: #7886ff;
+  --cyan: #56d8ee;
+  --emerald: #51d29d;
+  --amber: #f7be69;
+  --rose: #fb8497;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.28), 0 4px 14px rgba(0, 0, 0, 0.22);
+  --shadow-deep: 0 18px 48px rgba(0, 0, 0, 0.46);
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --space: 8px;
+
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Manrope", var(--font-body);
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --canvas: #f4f6fa;
+  --canvas-soft: #eceff5;
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: #ffffff;
+  --surface-muted: rgba(240, 243, 248, 0.8);
+
+  --border: rgba(12, 20, 32, 0.09);
+  --border-strong: rgba(12, 20, 32, 0.16);
+
+  --text: #101822;
+  --text-secondary: #4d5d6e;
+  --text-faint: #7c8b9a;
+
+  --indigo: #4d5cd6;
+  --cyan: #1b9fba;
+  --emerald: #1f9d6e;
+  --amber: #b7822a;
+  --rose: #d24a63;
+
+  --shadow-soft: 0 1px 2px rgba(16, 24, 34, 0.06), 0 4px 14px rgba(16, 24, 34, 0.07);
+  --shadow-deep: 0 18px 44px rgba(16, 24, 34, 0.14);
+
+  color-scheme: light;
+}
+
+/* ------------------------------------------------------------------- reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layered ambient lighting plus a restrained grid texture. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(760px 400px at 12% -6%, rgba(120, 134, 255, 0.16), transparent 65%),
+    radial-gradient(700px 380px at 92% 4%, rgba(86, 216, 238, 0.12), transparent 62%),
+    radial-gradient(620px 420px at 60% 106%, rgba(81, 210, 157, 0.08), transparent 60%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(circle at 50% 0%, black, transparent 78%);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--cyan);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

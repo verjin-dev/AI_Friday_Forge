@@ -1,0 +1,56 @@
+incident_id,type,severity,status,impact_level
+I001,Accident,High,Active,Traffic Delay
+I002,Heavy Rain,Critical,Active,Flood Risk
+I003,Road Work,Medium,Active,Lane Diversion
+I004,Waterlogging,High,Active,Slow Movement
+I005,Vehicle Breakdown,Medium,Active,Partial Block
+I006,Signal Failure,Medium,Active,Junction Delay
+I007,Road Block,Critical,Active,Route Closed
+I008,Landslip,High,Active,Reduced Access
+I009,Congestion,Medium,Active,Travel Delay
+I010,Bridge Repair,High,Planned,Restricted Flow
+I011,Accident,High,Resolved,Normalizing
+I012,Heavy Rain,High,Active,Low Visibility
+I013,Road Work,Medium,Planned,Maintenance
+I014,Tree Fall,High,Active,Partial Block
+I015,Flash Flood,Critical,Active,Severe Disruption
+I016,Accident,Medium,Active,Slow Traffic
+I017,Vehicle Breakdown,Low,Active,Minor Delay
+I018,Congestion,Medium,Active,Peak Hour Load
+I019,Waterlogging,High,Active,Urban Flooding
+I020,Signal Failure,Medium,Resolved,Recovered
+I021,Road Block,High,Active,Detour Required
+I022,Bridge Repair,Medium,Planned,Speed Restriction
+I023,Heavy Rain,Critical,Active,Drain Overflow
+I024,Accident,High,Active,Emergency Response
+I025,Road Work,Medium,Active,One Side Open
+I026,Congestion,High,Active,Bottleneck
+I027,Vehicle Breakdown,Medium,Resolved,Cleared
+I028,Waterlogging,Medium,Active,Short Delay
+I029,Landslip,High,Active,Hill Route Impact
+I030,Accident,High,Active,Intersection Delay
+I031,Road Block,Critical,Active,No Through Access
+I032,Heavy Rain,High,Active,Surface Water
+I033,Road Work,Low,Planned,Routine Work
+I034,Signal Failure,Medium,Active,Manual Control
+I035,Accident,Medium,Resolved,Cleared
+I036,Congestion,Medium,Active,Commercial Traffic
+I037,Bridge Repair,High,Active,Alternate Route Needed
+I038,Vehicle Breakdown,Low,Active,Shoulder Occupied
+I039,Waterlogging,High,Active,Bus Delay
+I040,Road Work,Medium,Active,Shoulder Closure
+I041,Heavy Rain,Critical,Active,Major Delay
+I042,Accident,High,Active,Multiple Vehicle
+I043,Congestion,High,Active,Holiday Rush
+I044,Tree Fall,Medium,Active,Temporary Obstruction
+I045,Road Block,High,Resolved,Reopened
+I046,Signal Failure,Low,Active,Short Delay
+I047,Waterlogging,Medium,Resolved,Drained
+I048,Bridge Repair,Medium,Active,Controlled Traffic
+I049,Heavy Rain,High,Active,Wet Surface
+I050,Accident,Critical,Active,Severe Delay
+I051,Road Work,Medium,Active,Excavation Zone
+I052,Congestion,Medium,Active,Narrow Stretch
+I053,Vehicle Breakdown,Medium,Active,Towing In Progress
+I054,Flash Flood,Critical,Active,Traffic Suspension
+I055,Landslip,High,Planned,Preventive Closure
