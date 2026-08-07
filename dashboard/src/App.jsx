@@ -242,7 +242,7 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
           setDetailTruck(updatedTruck);
 
           notify(
-            `Re-routed ${truck.id}! Spliced segment: ${newStops.join(" → ")}`,
+            `Re-routed ${truck.id}! ${newStops.length} stops via ${newStops.map((s) => s.name).slice(0, 4).join(" → ")}…`,
             "success"
           );
         } else {
@@ -381,6 +381,7 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
               )
             }
             onQuickRoute={() => setActiveNav("Routes")}
+            onNotifications={() => setActiveNav("Notifications")}
             alertCount={alertCount}
             session={session}
             onSignOut={onSignOut}

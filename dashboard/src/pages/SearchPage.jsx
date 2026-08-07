@@ -169,8 +169,8 @@ export default function SearchPage({ search, onSearch, trucks, onSelectTruck }) 
                     ))}
 
                   {key === "incident" &&
-                    results.incident.map((item) => (
-                      <tr key={item.incident_id}>
+                    results.incident.map((item, idx) => (
+                      <tr key={`${item.incident_id}-${item.location}-${idx}`}>
                         <td className="cell-primary">{item.incident_id}</td>
                         <td>{item.type}</td>
                         <td>{item.severity}</td>

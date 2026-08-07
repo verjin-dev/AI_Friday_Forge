@@ -289,7 +289,9 @@ function OpenStreetMap({
 
     const drawSelectedStops = async (stops) => {
       onSuggestions?.([]);
-      const points = stops.map((stop) => ({ lat: stop.lat, lng: stop.lng, name: stop.name }));
+      const points = stops
+        .filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng))
+        .map((stop) => ({ lat: stop.lat, lng: stop.lng, name: stop.name }));
       try {
         const routes = await fetchOsmRoutes(points, controller.signal);
         if (cancelled) return;
@@ -400,6 +402,10 @@ export default function FleetMap({
   const trafficRef = useRef(null);
   const osmActionsRef = useRef(null);
 
+  const routeActiveRef = useRef(false);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState(null);
   const [status, setStatus] = useState("Loading map…");
@@ -496,11 +502,17 @@ export default function FleetMap({
                 title: "Your location",
                 zIndex: 40,
               });
-              mapRef.current.setCenter(here);
-              mapRef.current.setZoom(9);
-              report("Centred on your location");
+              if (!routeActiveRef.current) {
+                mapRef.current.setCenter(here);
+                mapRef.current.setZoom(9);
+                report("Centred on your location");
+              }
             },
-            () => report("Location unavailable — showing the Kerala fleet view"),
+            () => {
+              if (!routeActiveRef.current) {
+                report("Location unavailable — showing the Kerala fleet view");
+              }
+            },
             { timeout: 8000 }
           );
         }
@@ -508,13 +520,13 @@ export default function FleetMap({
       .catch((exc) => {
         if (cancelled) return;
         setFailure(exc.message);
-        onError?.(exc.message);
+        onErrorRef.current?.(exc.message);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [onError, provider, report]);
+  }, [provider, report]);
 
   // --- fleet markers, clustered ------------------------------------------
   useEffect(() => {
@@ -557,6 +569,7 @@ export default function FleetMap({
     const google = window.google;
     clearOverlays();
     setSuggestions([]);
+    routeActiveRef.current = false;
 
     const drawStops = (points) => {
       points.forEach((point, index) => {
@@ -579,6 +592,7 @@ export default function FleetMap({
 
     // Manual planner mode.
     if (routeRequest?.origin && routeRequest?.destination) {
+      routeActiveRef.current = true;
       report(`Routing ${routeRequest.origin} → ${routeRequest.destination}`);
 
       directionsRef.current.route(
@@ -669,6 +683,7 @@ export default function FleetMap({
           const bounds = new google.maps.LatLngBounds();
           selected.overview_path.forEach((point) => bounds.extend(point));
           mapRef.current.fitBounds(bounds, 56);
+          routeActiveRef.current = true;
 
           report(
             `${response.routes.length} option${response.routes.length === 1 ? "" : "s"} · ` +
@@ -679,36 +694,61 @@ export default function FleetMap({
       return;
     }
 
-    // Planned-truck mode: follow the stops the platform actually chose.
+    // Planned-truck mode: use real-time Google Maps directions for the
+    // stops the platform chose. Accepts both lat/lng coords and stop names
+    // so the route always renders with live traffic data.
     const stops = selectedTruck?.stops || [];
     if (stops.length < 2) {
       if (selectedTruck) report(`${selectedTruck.id} has no mapped stops`);
       return;
     }
 
-    const points = stops.map((stop) => ({ lat: stop.lat, lng: stop.lng }));
+    const toLocation = (stop) => {
+      if (Number.isFinite(stop.lat) && Number.isFinite(stop.lng))
+        return { lat: stop.lat, lng: stop.lng };
+      return `${stop.name}, Kerala, India`;
+    };
+
+    const locations = stops
+      .filter(
+        (stop) =>
+          (Number.isFinite(stop.lat) && Number.isFinite(stop.lng)) || stop.name
+      )
+      .map(toLocation);
+
+    if (locations.length < 2) {
+      report(`${selectedTruck.id} has no mappable stops`);
+      return;
+    }
+
+    routeActiveRef.current = true;
+    report(`Routing ${selectedTruck.id} · ${stops.length} stops via live traffic…`);
 
     directionsRef.current.route(
       {
-        origin: points[0],
-        destination: points[points.length - 1],
-        waypoints: points.slice(1, -1).map((location) => ({
+        origin: locations[0],
+        destination: locations[locations.length - 1],
+        waypoints: locations.slice(1, -1).map((location) => ({
           location,
           stopover: true,
         })),
         travelMode: google.maps.TravelMode.DRIVING,
+        drivingOptions: {
+          departureTime: new Date(),
+          trafficModel: google.maps.TrafficModel.BEST_GUESS,
+        },
       },
       (response, responseStatus) => {
         if (responseStatus !== "OK" || !response?.routes?.length) {
           report(`Could not draw ${selectedTruck.id}'s route (${responseStatus})`);
-          // Still show the stops so the lane is visible.
-          drawStops(points);
           return;
         }
 
+        const route = response.routes[0];
+
         overlaysRef.current.push(
           new google.maps.Polyline({
-            path: response.routes[0].overview_path,
+            path: route.overview_path,
             map: mapRef.current,
             strokeColor: SELECTED_COLOUR,
             strokeOpacity: 0.95,
@@ -717,14 +757,47 @@ export default function FleetMap({
           })
         );
 
-        drawStops(points);
+        // Place numbered stop markers at the real positions resolved by
+        // DirectionsService (leg start/end), not the input coordinates.
+        const legPositions = [];
+        route.legs.forEach((leg, i) => {
+          legPositions.push(leg.start_location);
+          if (i === route.legs.length - 1) legPositions.push(leg.end_location);
+        });
+        legPositions.forEach((pos, idx) => {
+          overlaysRef.current.push(
+            new google.maps.Marker({
+              position: pos,
+              map: mapRef.current,
+              icon: pinIcon(STOP_COLOUR, true),
+              label: {
+                text: String(idx + 1),
+                color: "#0b1018",
+                fontSize: "10px",
+                fontWeight: "700",
+              },
+              title: stops[idx]?.name || `Stop ${idx + 1}`,
+              zIndex: 25,
+            })
+          );
+        });
 
         const bounds = new google.maps.LatLngBounds();
-        response.routes[0].overview_path.forEach((point) => bounds.extend(point));
+        route.overview_path.forEach((point) => bounds.extend(point));
         mapRef.current.fitBounds(bounds, 56);
+        routeActiveRef.current = true;
+
+        // Sum up real distance/duration from all legs
+        let totalDist = 0;
+        let totalDur = 0;
+        route.legs.forEach((leg) => {
+          totalDist += leg.distance?.value || 0;
+          totalDur += leg.duration_in_traffic?.value || leg.duration?.value || 0;
+        });
 
         report(
-          `${selectedTruck.id} · ${stops.length} planned stops · ${selectedTruck.route}`
+          `${selectedTruck.id} · ${stops.length} planned stops · ${selectedTruck.route} · ` +
+            `${formatDistance(totalDist)}, ${formatDuration(totalDur)} (live)`
         );
       }
     );

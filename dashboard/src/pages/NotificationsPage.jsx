@@ -214,11 +214,11 @@ export default function NotificationsPage({ search, notify, onFleetChanged }) {
                   </td>
                 </tr>
               )}
-              {incidents.map((incident) => {
+              {incidents.map((incident, index) => {
                 const isSelected = selectedIds.has(incident.incident_id);
                 return (
                   <tr
-                    key={incident.incident_id}
+                    key={`${incident.incident_id}-${incident.location}-${index}`}
                     style={{ background: isSelected ? "rgba(86, 216, 238, 0.06)" : undefined }}
                   >
                     <td style={{ textAlign: "center" }}>

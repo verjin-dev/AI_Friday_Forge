@@ -17,6 +17,7 @@ export default function Header({
   onToggleTheme,
   onAskAI,
   onQuickRoute,
+  onNotifications,
   alertCount,
   session,
   onSignOut,
@@ -77,6 +78,7 @@ export default function Header({
       <button
         type="button"
         className="icon-btn"
+        onClick={onNotifications}
         title="Notifications"
         aria-label={`Notifications, ${alertCount} open`}
         style={{ position: "relative" }}
