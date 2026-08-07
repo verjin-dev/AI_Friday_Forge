@@ -32,7 +32,7 @@ function normaliseTruck(truck) {
     load: truck.load,
     progress: truck.progress ?? 0,
     position: truck.position || null,
-    stops: (truck.stops || []).filter((stop) => stop.lat != null && stop.lng != null),
+    stops: (truck.stops || []).map((stop) => (typeof stop === "string" ? { name: stop } : stop)),
     // --- evidence carried through from the constraint engine ---
     vehicle: truck.vehicle,
     profileId: truck.profile_id,

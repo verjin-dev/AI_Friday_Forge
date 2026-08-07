@@ -114,8 +114,12 @@ class _OverlayCostModel(CostModel):
         return super().evaluate(leg, extra_penalty=extra_penalty + penalty)
 
 
-class RoutingEngine:
-    """Deterministic candidate generation over the knowledge graph."""
+class EnterpriseRouteOptimizationEngine:
+    """Enterprise Route Optimization Engine.
+
+    Owns the deterministic, multi-dimensional logistics optimization pipeline:
+    Knowledge Graph -> Incident Overlay -> A* Search / Yen's Alternatives -> 7-Dimension Cost Model -> Enterprise Candidate Scoring.
+    """
 
     def __init__(
         self,
@@ -133,6 +137,9 @@ class RoutingEngine:
         destination: str,
         *,
         vehicle: VehicleContext | None = None,
+        shipment: ShipmentContext | None = None,
+        mode: Any = "balanced",
+        environment: Any = None,
         coordinates: dict[str, dict[str, float]] | None = None,
         k: int | None = None,
         algorithm: str | None = None,
@@ -164,8 +171,26 @@ class RoutingEngine:
             override=algorithm,
         )
 
+        # ML Feature Engineering & ML Prediction Model Pipeline
+        from app.domain.ml_prediction import get_ml_predictor
+        ml_predictor = get_ml_predictor()
+        features = ml_predictor.feature_pipeline.extract_features(
+            distance_km=0.0,
+            free_flow_minutes=0.0,
+            active_incidents_count=len(getattr(network, "incidents_by_location", {}) or {}),
+        )
+        ml_pred = ml_predictor.predict(features)
+
         cost_model = _OverlayCostModel(
-            CostModel(self._weights or CostWeights.from_settings(), vehicle), projection
+            CostModel(
+                weights=self._weights,
+                vehicle=vehicle,
+                shipment=shipment,
+                ml_prediction=ml_pred,
+                mode=mode,
+                environment=environment,
+            ),
+            projection,
         )
 
         if isinstance(choice.strategy, YenKShortestStrategy):
@@ -295,10 +320,11 @@ class RoutingEngine:
         return candidates
 
 
-_engine = RoutingEngine()
+RoutingEngine = EnterpriseRouteOptimizationEngine
+_engine = EnterpriseRouteOptimizationEngine()
 
 
-def get_routing_engine() -> RoutingEngine:
+def get_routing_engine() -> EnterpriseRouteOptimizationEngine:
     """Injection point for the API layer and the agents."""
 
     return _engine

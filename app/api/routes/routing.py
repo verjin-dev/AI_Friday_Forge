@@ -478,6 +478,7 @@ async def replan(
     payload = outcome.model_dump(mode="json")
     if outcome.route:
         payload["route"]["label"] = outcome.route.label
+    payload["coordinates"] = coordinates
     return payload
 
 
@@ -498,19 +499,14 @@ async def algorithms() -> dict[str, Any]:
         "would_select": {"algorithm": choice.name, "reason": choice.reason},
         "available": [
             {
-                "name": "dijkstra",
-                "use": "exact shortest path; the reference result",
-                "selected_when": "small graphs, or when no coordinates exist",
-            },
-            {
                 "name": "astar",
-                "use": "same optimum as Dijkstra, fewer expansions",
-                "selected_when": f"graphs of {settings.astar_node_threshold}+ nodes with coordinates",
+                "use": "Default enterprise single-path optimization engine with geographic lower bound",
+                "selected_when": "Single-path optimization queries (gracefully falls back to 0.0 heuristic if un-geocoded)",
             },
             {
                 "name": "yen",
-                "use": "K loopless shortest paths for genuine alternatives",
-                "selected_when": "more than one candidate is requested",
+                "use": "K loopless shortest paths over A* for alternative candidates, detours & replanning",
+                "selected_when": "Alternative route suggestions, route blockages, driver manual selection, or replanning requested",
             },
         ],
         "feature_flags": {
@@ -519,4 +515,20 @@ async def algorithms() -> dict[str, Any]:
             "segment_replanning": settings.enable_segment_replanning,
             "route_monitoring": settings.enable_route_monitoring,
         },
+    }
+
+
+@router.post("/incidents/generate")
+async def generate_realtime_incidents_endpoint() -> dict[str, Any]:
+    """Generate fresh real-time incident data and reload directly into Neo4j."""
+    from scripts.generate_realtime_incidents import generate_incidents_data, save_csvs, upload_to_neo4j
+
+    node_rows, location_rows = generate_incidents_data()
+    save_csvs(node_rows, location_rows)
+    await upload_to_neo4j(node_rows, location_rows)
+    return {
+        "status": "ok",
+        "message": f"Successfully generated and uploaded {len(node_rows)} real-time incidents to Neo4j.",
+        "incidents_count": len(node_rows),
+        "timestamp": datetime.now().isoformat(),
     }

@@ -173,31 +173,18 @@ class TestAlgorithms:
 
 
 class TestFactory:
-    def test_small_graph_picks_dijkstra(self):
-        choice = RoutingStrategyFactory(large_graph_threshold=250).create(node_count=55)
-        assert choice.name == "dijkstra"
 
-    def test_large_graph_picks_astar(self):
-        choice = RoutingStrategyFactory(large_graph_threshold=250).create(
-            node_count=5000
-        )
+    def test_default_picks_astar(self):
+        choice = RoutingStrategyFactory().create(node_count=55)
         assert choice.name == "astar"
 
     def test_alternatives_pick_yen(self):
         choice = RoutingStrategyFactory().create(node_count=55, want_alternatives=True)
         assert choice.name == "yen"
 
-    def test_missing_coordinates_falls_back_to_dijkstra(self):
-        choice = RoutingStrategyFactory(large_graph_threshold=1).create(
-            node_count=9000, has_coordinates=False
-        )
-        assert choice.name == "dijkstra"
-
-    def test_override_is_honoured(self):
-        assert (
-            RoutingStrategyFactory().create(node_count=5000, override="dijkstra").name
-            == "dijkstra"
-        )
+    def test_missing_coordinates_uses_astar_fallback(self):
+        choice = RoutingStrategyFactory().create(node_count=9000, has_coordinates=False)
+        assert choice.name == "astar"
 
     def test_every_choice_explains_itself(self):
         choice = RoutingStrategyFactory().create(node_count=55)

@@ -206,20 +206,13 @@ class _BestFirstSearch:
         return None
 
 
-class DijkstraStrategy(_BestFirstSearch):
-    """Exact shortest path. The reference implementation everything else matches."""
-
-    name = "dijkstra"
-
-
 class AStarStrategy(_BestFirstSearch):
-    """Dijkstra with a geographic lower bound.
+    """Default single-path routing engine: A* with an admissible geographic lower bound.
 
     The heuristic is straight-line distance at the fastest road speed, which
-    can never over-estimate the true remaining cost — so the result is
-    identical to Dijkstra while expanding far fewer nodes. Where coordinates
-    are missing the heuristic returns zero, degrading gracefully to Dijkstra
-    for that node rather than risking an inadmissible estimate.
+    can never over-estimate the true remaining cost. Where coordinates
+    are missing the heuristic returns zero, degrading gracefully to uniform-cost
+    search for that node.
     """
 
     name = "astar"
@@ -230,7 +223,7 @@ class AStarStrategy(_BestFirstSearch):
         target = graph.coordinates(destination)
         if target is None:
             logger.debug(
-                "A* falling back to Dijkstra — destination has no coordinates",
+                "A* un-geocoded fallback — destination has no coordinates",
                 extra={"destination": destination},
             )
             return lambda _node: 0.0
@@ -252,6 +245,12 @@ class AStarStrategy(_BestFirstSearch):
         return heuristic
 
 
+class DijkstraStrategy(AStarStrategy):
+    """Alias for AStarStrategy for backward compatibility."""
+
+    name = "dijkstra"
+
+
 class YenKShortestStrategy:
     """Yen's algorithm for K loopless shortest paths.
 
@@ -264,7 +263,7 @@ class YenKShortestStrategy:
     name = "yen"
 
     def __init__(self, base: RouteStrategy | None = None, k: int = 4) -> None:
-        self.base = base or DijkstraStrategy()
+        self.base = base or AStarStrategy()
         self.k = k
 
     def find(

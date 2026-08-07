@@ -172,12 +172,15 @@ export default function FleetMap({
   }, []);
 
   // --- initialise ---------------------------------------------------------
+  const lastFittedKeyRef = useRef(null);
+
   useEffect(() => {
+    if (mapRef.current) return;
     let cancelled = false;
 
     loadGoogleMaps()
       .then((google) => {
-        if (cancelled || !containerRef.current) return;
+        if (cancelled || !containerRef.current || mapRef.current) return;
 
         mapRef.current = new google.maps.Map(containerRef.current, {
           center: KERALA_CENTRE,
@@ -235,7 +238,7 @@ export default function FleetMap({
     return () => {
       cancelled = true;
     };
-  }, [onError, report]);
+  }, []);
 
   // --- fleet markers, clustered ------------------------------------------
   useEffect(() => {
@@ -387,9 +390,13 @@ export default function FleetMap({
             );
           });
 
-          const bounds = new google.maps.LatLngBounds();
-          selected.overview_path.forEach((point) => bounds.extend(point));
-          mapRef.current.fitBounds(bounds, 56);
+          const mapKey = `request_${routeRequest.origin}_${routeRequest.destination}_${active}`;
+          if (lastFittedKeyRef.current !== mapKey) {
+            const bounds = new google.maps.LatLngBounds();
+            selected.overview_path.forEach((point) => bounds.extend(point));
+            mapRef.current.fitBounds(bounds, 56);
+            lastFittedKeyRef.current = mapKey;
+          }
 
           report(
             `${response.routes.length} option${response.routes.length === 1 ? "" : "s"} · ` +
@@ -407,7 +414,16 @@ export default function FleetMap({
       return;
     }
 
-    const points = stops.map((stop) => ({ lat: stop.lat, lng: stop.lng }));
+    const points = stops
+      .map((stop) => {
+        if (typeof stop === "string") return stop;
+        if (stop.lat != null && stop.lng != null && !isNaN(stop.lat) && !isNaN(stop.lng)) {
+          return { lat: Number(stop.lat), lng: Number(stop.lng) };
+        }
+        if (stop.name) return stop.name;
+        return null;
+      })
+      .filter(Boolean);
 
     directionsRef.current.route(
       {
@@ -440,9 +456,13 @@ export default function FleetMap({
 
         drawStops(points);
 
-        const bounds = new google.maps.LatLngBounds();
-        response.routes[0].overview_path.forEach((point) => bounds.extend(point));
-        mapRef.current.fitBounds(bounds, 56);
+        const mapKey = `truck_${selectedTruck.id}`;
+        if (lastFittedKeyRef.current !== mapKey) {
+          const bounds = new google.maps.LatLngBounds();
+          response.routes[0].overview_path.forEach((point) => bounds.extend(point));
+          mapRef.current.fitBounds(bounds, 56);
+          lastFittedKeyRef.current = mapKey;
+        }
 
         report(
           `${selectedTruck.id} · ${stops.length} planned stops · ${selectedTruck.route}`

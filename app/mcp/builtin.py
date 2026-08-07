@@ -373,6 +373,145 @@ async def file_read(path: str, max_chars: int = 20000) -> dict[str, Any]:
 
 
 # ----------------------------------------------------------------------
+# Advanced Routing, Replanning, Monitoring & Constraints
+# ----------------------------------------------------------------------
+async def replan_route(
+    stops: list[str],
+    current_node: str,
+    blocked_edge: list[str] | None = None,
+    reason: str = "incident_detour",
+    vehicle_profile: str | None = None,
+) -> dict[str, Any]:
+    """Perform segment-level route replanning when a road is blocked."""
+    from app.domain.fleet import get_profile
+    from app.routing import ReplanRequest, VehicleContext, get_replanner
+
+    network = await load_network()
+    vehicle = get_profile(vehicle_profile) if vehicle_profile else None
+    edge_tuple = tuple(blocked_edge[:2]) if blocked_edge and len(blocked_edge) >= 2 else None
+    request = ReplanRequest(
+        stops=stops,
+        current_node=current_node,
+        blocked_edge=edge_tuple,
+        reason=reason,
+        vehicle=VehicleContext.from_profile(vehicle) if vehicle else None,
+    )
+    outcome = get_replanner().replan(network, request)
+    return outcome.model_dump(mode="json")
+
+
+async def route_monitor_start(
+    origin: str,
+    destination: str,
+    route_stops: list[str],
+    original_eta_minutes: float,
+    vehicle_profile: str | None = None,
+) -> dict[str, Any]:
+    """Register an active route for continuous monitoring and ETA drift detection."""
+    from app.domain.fleet import get_profile
+    from app.routing import RouteCandidate, VehicleContext, get_route_monitor
+
+    vehicle = get_profile(vehicle_profile) if vehicle_profile else None
+    candidate = RouteCandidate(
+        rank=1,
+        stops=route_stops,
+        total_distance_km=0.0,
+        estimated_travel_minutes=original_eta_minutes,
+    )
+    route_id = get_route_monitor().register(
+        candidate,
+        vehicle=VehicleContext.from_profile(vehicle) if vehicle else None,
+        original_eta=original_eta_minutes,
+    )
+    return {
+        "status": "registered",
+        "route_id": route_id,
+        "origin": origin,
+        "destination": destination,
+        "monitored_stops": route_stops,
+        "original_eta_minutes": original_eta_minutes,
+    }
+
+
+async def route_monitor_status() -> dict[str, Any]:
+    """Retrieve active monitoring status and event log for all tracked routes."""
+    from app.routing import get_route_monitor
+
+    return get_route_monitor().status()
+
+
+async def route_monitor_poll(route_id: str) -> dict[str, Any]:
+    """Poll current network and traffic conditions for a monitored route."""
+    from app.routing import get_route_monitor
+
+    network = await load_network()
+    event = await get_route_monitor().poll(route_id, network=network)
+    return event.model_dump(mode="json")
+
+
+async def generate_realtime_incidents() -> dict[str, Any]:
+    """Generate fresh real-time incident data and reload directly into Neo4j."""
+    from scripts.generate_realtime_incidents import generate_incidents_data, save_csvs, upload_to_neo4j
+
+    node_rows, location_rows = generate_incidents_data()
+    save_csvs(node_rows, location_rows)
+    await upload_to_neo4j(node_rows, location_rows)
+    return {
+        "status": "ok",
+        "message": f"Successfully generated and uploaded {len(node_rows)} real-time incidents to Neo4j.",
+        "incidents_count": len(node_rows),
+    }
+
+
+async def evaluate_constraints(
+    label: str,
+    stops: list[str],
+    vehicle_profile: str | None = None,
+    payload_weight_kg: float | None = None,
+    payload_volume_m3: float | None = None,
+) -> dict[str, Any]:
+    """Evaluate 19 enterprise logistics and vehicle constraints against a proposed route."""
+    from app.agents.optimization import _path_to_candidate
+    from app.domain.constraints import evaluate_candidate, get_constraint_profile
+    from app.domain.fleet import apply_profile, get_profile, profile_constraint_overrides
+
+    network = await load_network()
+    path = network.build_path(stops)
+    candidate = _path_to_candidate(path) if path else None
+    if not candidate and len(stops) >= 2:
+        planned = network.plan(stops[0], stops[-1])
+        if planned:
+            candidate = _path_to_candidate(planned[0])
+    if not candidate:
+        return {"feasible": False, "error": f"Could not build route candidate for stops: {stops}"}
+
+    candidate.label = label
+    vehicle = get_profile(vehicle_profile) if vehicle_profile else None
+    if vehicle:
+        apply_profile(
+            candidate,
+            vehicle,
+            payload_weight_kg=payload_weight_kg,
+            payload_volume_m3=payload_volume_m3,
+        )
+    profile = profile_constraint_overrides(vehicle) if vehicle else get_constraint_profile()
+    report = evaluate_candidate(candidate, profile)
+    return report.model_dump(mode="json")
+
+
+async def algorithm_list() -> dict[str, Any]:
+    """List all deterministic graph pathfinding algorithms and selection criteria."""
+    return {
+        "available_algorithms": ["auto", "dijkstra", "astar", "yen"],
+        "selection_rules": {
+            "dijkstra": "Used for small graphs (< 250 nodes) without geographic coordinates",
+            "astar": "Used for large graphs (>= 250 nodes) with haversine heuristic coordinates",
+            "yen": "Used when K > 1 route candidates (alternatives) are requested",
+        },
+    }
+
+
+# ----------------------------------------------------------------------
 # Registration
 # ----------------------------------------------------------------------
 BUILTIN_SPECS: tuple[ToolSpec, ...] = (
@@ -483,6 +622,88 @@ BUILTIN_SPECS: tuple[ToolSpec, ...] = (
         ),
         handler=network_status,
         tags=["logistics", "knowledge"],
+    ),
+    ToolSpec(
+        name="replan_route",
+        description=(
+            "Perform segment-level route replanning when a road segment is blocked "
+            "or delayed, preserving the driven prefix."
+        ),
+        parameters=_schema(
+            {
+                "stops": {"type": "array", "items": {"type": "string"}},
+                "current_node": {"type": "string"},
+                "blocked_edge": {"type": "array", "items": {"type": "string"}},
+                "reason": {"type": "string", "default": "incident_detour"},
+                "vehicle_profile": {"type": "string"},
+            },
+            ["stops", "current_node"],
+        ),
+        handler=replan_route,
+        tags=["logistics", "routing"],
+    ),
+    ToolSpec(
+        name="route_monitor_start",
+        description="Register an active route for continuous monitoring and ETA drift detection.",
+        parameters=_schema(
+            {
+                "origin": {"type": "string"},
+                "destination": {"type": "string"},
+                "route_stops": {"type": "array", "items": {"type": "string"}},
+                "original_eta_minutes": {"type": "number"},
+                "vehicle_profile": {"type": "string"},
+            },
+            ["origin", "destination", "route_stops", "original_eta_minutes"],
+        ),
+        handler=route_monitor_start,
+        tags=["logistics", "monitoring"],
+    ),
+    ToolSpec(
+        name="route_monitor_status",
+        description="Retrieve active monitoring status and event log for all tracked routes.",
+        parameters=_schema({}),
+        handler=route_monitor_status,
+        tags=["logistics", "monitoring"],
+    ),
+    ToolSpec(
+        name="route_monitor_poll",
+        description="Poll current network and traffic conditions for a monitored route.",
+        parameters=_schema(
+            {"route_id": {"type": "string"}},
+            ["route_id"],
+        ),
+        handler=route_monitor_poll,
+        tags=["logistics", "monitoring"],
+    ),
+    ToolSpec(
+        name="generate_realtime_incidents",
+        description="Generate fresh real-time incident data and reload directly into Neo4j.",
+        parameters=_schema({}),
+        handler=generate_realtime_incidents,
+        tags=["logistics", "incidents"],
+    ),
+    ToolSpec(
+        name="evaluate_constraints",
+        description="Evaluate 19 enterprise logistics and vehicle constraints against a proposed route.",
+        parameters=_schema(
+            {
+                "label": {"type": "string"},
+                "stops": {"type": "array", "items": {"type": "string"}},
+                "vehicle_profile": {"type": "string"},
+                "payload_weight_kg": {"type": "number"},
+                "payload_volume_m3": {"type": "number"},
+            },
+            ["label", "stops"],
+        ),
+        handler=evaluate_constraints,
+        tags=["logistics", "constraints"],
+    ),
+    ToolSpec(
+        name="algorithm_list",
+        description="List all deterministic graph pathfinding algorithms and selection criteria.",
+        parameters=_schema({}),
+        handler=algorithm_list,
+        tags=["logistics", "routing"],
     ),
     ToolSpec(
         name="sql_query",

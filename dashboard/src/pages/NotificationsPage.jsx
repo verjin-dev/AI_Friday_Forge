@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Power, ShieldCheck } from "lucide-react";
+import {
+  CheckSquare,
+  Power,
+  ShieldCheck,
+  Square,
+  Zap,
+  ZapOff,
+} from "lucide-react";
 
 import PageState from "../components/PageState.jsx";
 import {
@@ -21,6 +28,7 @@ export default function NotificationsPage({ search, notify, onFleetChanged }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const load = useCallback(async (signal) => {
     try {
@@ -58,6 +66,28 @@ export default function NotificationsPage({ search, notify, onFleetChanged }) {
     }
   };
 
+  const handleBulkToggle = async (targetIncidents, targetStatus) => {
+    if (!targetIncidents || targetIncidents.length === 0) return;
+    setBusy("bulk");
+    try {
+      let lastPayload = null;
+      for (const inc of targetIncidents) {
+        lastPayload = await setIncidentStatus(inc.incident_id, targetStatus);
+      }
+      if (lastPayload) setNetwork(lastPayload.network);
+      setSelectedIds(new Set());
+      notify(
+        `Bulk updated ${targetIncidents.length} incident(s) to ${targetStatus}. Routes re-planned.`,
+        "success"
+      );
+      onFleetChanged?.();
+    } catch (exc) {
+      notify(`Bulk update error: ${exc.message}`, "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const term = search.trim().toLowerCase();
   const incidents = (network?.incidents || []).filter((incident) =>
     !term
@@ -67,24 +97,107 @@ export default function NotificationsPage({ search, notify, onFleetChanged }) {
   );
 
   const active = incidents.filter((incident) => incident.is_active);
+  const inactive = incidents.filter((incident) => !incident.is_active);
+
+  const allSelected = incidents.length > 0 && selectedIds.size === incidents.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(incidents.map((i) => i.incident_id)));
+    }
+  };
+
+  const toggleSelectOne = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectedIncidents = incidents.filter((i) => selectedIds.has(i.incident_id));
 
   return (
     <PageState loading={loading} error={error}>
       <section className="card">
-        <div className="panel-head">
+        <div className="panel-head" style={{ flexWrap: "wrap", gap: "10px" }}>
           <h3>Incidents</h3>
           <span className="sub">
             {active.length} active of {incidents.length}
           </span>
-          <span className="sub" style={{ marginLeft: "auto" }}>
+          <span className="sub" style={{ marginRight: "auto" }}>
             {network?.blocked_locations?.length || 0} locations blocked
           </span>
+
+          {/* Bulk Action Controls */}
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {selectedIds.size > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="pill-btn"
+                  onClick={() => handleBulkToggle(selectedIncidents, "Inactive")}
+                  disabled={busy === "bulk"}
+                  style={{ color: "var(--emerald)", borderColor: "var(--emerald)" }}
+                >
+                  <ZapOff size={13} />
+                  Clear Selected ({selectedIds.size})
+                </button>
+                <button
+                  type="button"
+                  className="pill-btn"
+                  onClick={() => handleBulkToggle(selectedIncidents, "Active")}
+                  disabled={busy === "bulk"}
+                  style={{ color: "var(--rose)", borderColor: "var(--rose)" }}
+                >
+                  <Zap size={13} />
+                  Activate Selected ({selectedIds.size})
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="pill-btn"
+                  onClick={() => handleBulkToggle(active, "Inactive")}
+                  disabled={busy === "bulk" || active.length === 0}
+                  title="Clear all active incidents in bulk"
+                >
+                  <ZapOff size={13} />
+                  Clear All Active ({active.length})
+                </button>
+                <button
+                  type="button"
+                  className="pill-btn"
+                  onClick={() => handleBulkToggle(inactive, "Active")}
+                  disabled={busy === "bulk" || inactive.length === 0}
+                  title="Activate all inactive incidents in bulk"
+                >
+                  <Zap size={13} />
+                  Activate All ({inactive.length})
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
+                <th style={{ width: "40px", textAlign: "center" }}>
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--cyan)" }}
+                    title={allSelected ? "Deselect all" : "Select all"}
+                  >
+                    {allSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+                  </button>
+                </th>
                 <th>Incident</th>
                 <th>Type</th>
                 <th>Severity</th>
@@ -96,64 +209,79 @@ export default function NotificationsPage({ search, notify, onFleetChanged }) {
             <tbody>
               {incidents.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <p className="empty-state">No incidents match your search.</p>
                   </td>
                 </tr>
               )}
-              {incidents.map((incident) => (
-                <tr key={incident.incident_id}>
-                  <td className="cell-primary">{incident.incident_id}</td>
-                  <td>{incident.type}</td>
-                  <td>
-                    <span
-                      className="status-tag"
-                      style={{ color: SEVERITY_TONE[incident.severity] }}
-                    >
-                      <i
-                        className="legend-swatch"
-                        style={{ background: SEVERITY_TONE[incident.severity] }}
-                        aria-hidden="true"
-                      />
-                      {incident.severity}
-                    </span>
-                    {incident.is_blocking && (
-                      <div className="cell-sub" style={{ color: "var(--rose)" }}>
-                        blocks routing
-                      </div>
-                    )}
-                  </td>
-                  <td>{incident.location}</td>
-                  <td>
-                    <span
-                      className="status-tag"
-                      style={{
-                        color: incident.is_active
-                          ? "var(--emerald)"
-                          : "var(--text-faint)",
-                      }}
-                    >
-                      {incident.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button
-                      type="button"
-                      className="pill-btn"
-                      onClick={() => toggle(incident)}
-                      disabled={busy === incident.incident_id}
-                      title={
-                        incident.is_active
-                          ? `Clear ${incident.incident_id} and re-plan`
-                          : `Activate ${incident.incident_id} and re-plan`
-                      }
-                    >
-                      <Power size={12} aria-hidden="true" />
-                      {incident.is_active ? "Clear" : "Activate"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {incidents.map((incident) => {
+                const isSelected = selectedIds.has(incident.incident_id);
+                return (
+                  <tr
+                    key={incident.incident_id}
+                    style={{ background: isSelected ? "rgba(86, 216, 238, 0.06)" : undefined }}
+                  >
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectOne(incident.incident_id)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: isSelected ? "var(--cyan)" : "var(--text-faint)" }}
+                      >
+                        {isSelected ? <CheckSquare size={15} /> : <Square size={15} />}
+                      </button>
+                    </td>
+                    <td className="cell-primary">{incident.incident_id}</td>
+                    <td>{incident.type}</td>
+                    <td>
+                      <span
+                        className="status-tag"
+                        style={{ color: SEVERITY_TONE[incident.severity] }}
+                      >
+                        <i
+                          className="legend-swatch"
+                          style={{ background: SEVERITY_TONE[incident.severity] }}
+                          aria-hidden="true"
+                        />
+                        {incident.severity}
+                      </span>
+                      {incident.is_blocking && (
+                        <div className="cell-sub" style={{ color: "var(--rose)" }}>
+                          blocks routing
+                        </div>
+                      )}
+                    </td>
+                    <td>{incident.location}</td>
+                    <td>
+                      <span
+                        className="status-tag"
+                        style={{
+                          color: incident.is_active
+                            ? "var(--emerald)"
+                            : "var(--text-faint)",
+                        }}
+                      >
+                        {incident.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className="pill-btn"
+                        onClick={() => toggle(incident)}
+                        disabled={busy === incident.incident_id || busy === "bulk"}
+                        title={
+                          incident.is_active
+                            ? `Clear ${incident.incident_id} and re-plan`
+                            : `Activate ${incident.incident_id} and re-plan`
+                        }
+                      >
+                        <Power size={12} aria-hidden="true" />
+                        {incident.is_active ? "Clear" : "Activate"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

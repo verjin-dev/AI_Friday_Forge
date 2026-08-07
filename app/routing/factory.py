@@ -56,20 +56,17 @@ class RoutingStrategyFactory:
         has_coordinates: bool = True,
         override: str | None = None,
     ) -> AlgorithmChoice:
-        requested = (override or settings.routing_algorithm or "auto").strip().lower()
+        requested = (override or settings.routing_algorithm or "astar").strip().lower()
 
-        if requested in {"dijkstra", "astar", "a*", "yen"}:
-            return self._explicit(requested, has_coordinates)
-
-        base_name, base, reason = self._auto_base(node_count, has_coordinates)
-
-        if want_alternatives:
+        if want_alternatives or requested == "yen":
+            base_name, base, reason = self._auto_base(node_count, has_coordinates)
             return AlgorithmChoice(
                 strategy=YenKShortestStrategy(base=base, k=settings.route_candidate_count),
                 name="yen",
-                reason=f"alternatives requested; Yen's over {base_name} ({reason})",
+                reason=f"alternatives/detour/replanning requested; Yen's over {base_name} ({reason})",
             )
 
+        base_name, base, reason = self._auto_base(node_count, has_coordinates)
         choice = AlgorithmChoice(strategy=base, name=base_name, reason=reason)
         logger.debug(
             "Routing algorithm selected",
@@ -81,46 +78,23 @@ class RoutingStrategyFactory:
     def _auto_base(
         self, node_count: int, has_coordinates: bool
     ) -> tuple[str, RouteStrategy, str]:
-        if not has_coordinates:
-            return (
-                "dijkstra",
-                DijkstraStrategy(),
-                "no coordinates, so an A* heuristic would add cost without pruning",
-            )
-        if node_count >= self.large_graph_threshold:
-            return (
-                "astar",
-                AStarStrategy(),
-                f"{node_count} nodes at or above the {self.large_graph_threshold} threshold",
-            )
-        return (
-            "dijkstra",
-            DijkstraStrategy(),
-            f"{node_count} nodes below the {self.large_graph_threshold} threshold",
-        )
+        reason = "A* with geographic heuristic" if has_coordinates else "A* with 0.0 heuristic fallback (un-geocoded)"
+        return ("astar", AStarStrategy(), reason)
 
     def _explicit(self, requested: str, has_coordinates: bool) -> AlgorithmChoice:
         if requested == "yen":
             return AlgorithmChoice(
                 strategy=YenKShortestStrategy(
-                    base=AStarStrategy() if has_coordinates else DijkstraStrategy(),
+                    base=AStarStrategy(),
                     k=settings.route_candidate_count,
                 ),
                 name="yen",
-                reason="explicitly requested",
-            )
-        if requested in {"astar", "a*"}:
-            if not has_coordinates:
-                return AlgorithmChoice(
-                    strategy=DijkstraStrategy(),
-                    name="dijkstra",
-                    reason="A* requested but no coordinates are available",
-                )
-            return AlgorithmChoice(
-                strategy=AStarStrategy(), name="astar", reason="explicitly requested"
+                reason="explicitly requested for alternative candidates",
             )
         return AlgorithmChoice(
-            strategy=DijkstraStrategy(), name="dijkstra", reason="explicitly requested"
+            strategy=AStarStrategy(),
+            name="astar",
+            reason="A* single-path optimization engine",
         )
 
 

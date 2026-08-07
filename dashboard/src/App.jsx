@@ -13,7 +13,7 @@ import RoutesPage from "./pages/RoutesPage.jsx";
 import SearchPage from "./pages/SearchPage.jsx";
 import SettingsPage from "./pages/SettingsPage.jsx";
 
-import { fallbackMetrics, fallbackTrucks, fetchFleet } from "./data/fleet.js";
+import { fallbackMetrics, fallbackTrucks, fetchFleet, replanRoute } from "./data/fleet.js";
 
 const TOAST_MS = 3600;
 
@@ -168,6 +168,103 @@ export default function App({ session, onSignOut, onNavigate }) {
     notify(`Requesting directions: ${origin} → ${destination}`, "info");
   }, [origin, destination, notify]);
 
+  const handleReplan = useCallback(
+    async (truck) => {
+      if (!truck) return;
+      const rawStops =
+        truck.stops && truck.stops.length > 0
+          ? truck.stops.map((s) => (typeof s === "string" ? s : s.name))
+          : truck.route
+          ? truck.route.split(" to ")
+          : ["Kochi", "Thiruvananthapuram"];
+
+      const currentNode =
+        truck.next_stop || (rawStops.length > 1 ? rawStops[1] : rawStops[0]);
+      const currentIndex = rawStops.indexOf(currentNode);
+      const nextIndex =
+        currentIndex >= 0 && currentIndex < rawStops.length - 1
+          ? currentIndex + 1
+          : 1;
+      const blockedEdge = [
+        rawStops[Math.max(0, nextIndex - 1)],
+        rawStops[nextIndex],
+      ];
+
+      notify(`Re-routing ${truck.id} via Segment Replanner…`, "info");
+
+      try {
+        const outcome = await replanRoute({
+          stops: rawStops,
+          current_node: currentNode,
+          blocked_edge: blockedEdge,
+          reason: "Dispatcher manual re-route request",
+        });
+
+        if (outcome && outcome.route && outcome.route.stops) {
+          const coords = outcome.coordinates || {};
+          const newStops = outcome.route.stops.map((name) => {
+            const c = coords[name];
+            return {
+              name,
+              lat: c?.latitude ?? null,
+              lng: c?.longitude ?? null,
+            };
+          });
+          const newRouteStr = `${newStops[0].name} to ${newStops[newStops.length - 1].name}`;
+
+          setFleet((prev) => ({
+            ...prev,
+            trucks: prev.trucks.map((t) => {
+              if (t.id === truck.id) {
+                return {
+                  ...t,
+                  stops: newStops,
+                  route: newRouteStr,
+                  distanceKm: (t.distanceKm || 0) + (outcome.added_distance_km || 0),
+                  status: "On route",
+                  feasible: true,
+                  softViolations: [
+                    `Re-routed via segment replanner (+${
+                      outcome.added_distance_km || 0
+                    } km)`,
+                  ],
+                };
+              }
+              return t;
+            }),
+          }));
+
+          const updatedTruck = {
+            ...truck,
+            stops: newStops,
+            route: newRouteStr,
+            distanceKm: (truck.distanceKm || 0) + (outcome.added_distance_km || 0),
+            status: "On route",
+            feasible: true,
+          };
+
+          setSelectedTruck(updatedTruck);
+          setDetailTruck(updatedTruck);
+
+          notify(
+            `Re-routed ${truck.id}! Spliced segment: ${newStops.join(" → ")}`,
+            "success"
+          );
+        } else {
+          notify(
+            `Re-planning result: ${
+              outcome?.note || outcome?.reason || "No alternate path found"
+            }`,
+            "warning"
+          );
+        }
+      } catch (err) {
+        notify(`Re-routing failed: ${err.message}`, "error");
+      }
+    },
+    [notify]
+  );
+
   const toggleRow = useCallback((id) => {
     setSelectedRows((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
@@ -257,6 +354,7 @@ export default function App({ session, onSignOut, onNavigate }) {
             detailTruck={detailTruck}
             onCloseDetail={() => setDetailTruck(null)}
             onBackToFleet={backToFleet}
+            onReplan={handleReplan}
           />
         );
     }

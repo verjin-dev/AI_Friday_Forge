@@ -28,6 +28,7 @@ export default function OverviewPage({
   detailTruck,
   onCloseDetail,
   onBackToFleet,
+  onReplan,
 }) {
   const alertCount = fleet.alerts.length;
 
@@ -122,6 +123,7 @@ export default function OverviewPage({
                 truck={detailTruck}
                 onClose={onCloseDetail}
                 onAction={notify}
+                onReplan={onReplan}
               />
             )}
           </div>

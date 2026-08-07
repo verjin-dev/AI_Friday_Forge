@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "logipilot": {
+      "command": "python",
+      "args": ["scripts/run_mcp_server.py", "--transport", "stdio"],
+      "description": "LogiPilot AI Enterprise Logistics & Route Optimization MCP Server"
+    }
+  }
+}

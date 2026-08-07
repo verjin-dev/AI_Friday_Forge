@@ -65,13 +65,13 @@ class Settings(BaseSettings):
 
     #: Incident severities that make a location impassable. Only Critical by
     #: default — High and below are modelled as delay, not as a hard block.
-    blocking_severities: list[str] = Field(default_factory=lambda: ["critical"])
+    blocking_severities: list[str] = Field(default_factory=lambda: ["critical", "high"])
 
     # ------------------------------------------------------------------
     # Routing engine
     # ------------------------------------------------------------------
-    #: "auto" picks by graph size; force with dijkstra | astar | yen.
-    routing_algorithm: str = "auto"
+    #: Default enterprise routing algorithm: "astar" (with Yen's for alternatives).
+    routing_algorithm: str = "astar"
     #: Node count at or above which A* is preferred over Dijkstra.
     astar_node_threshold: int = 250
     route_candidate_count: int = 4
@@ -214,7 +214,7 @@ class Settings(BaseSettings):
     # API
     # ------------------------------------------------------------------
     api_host: str = "0.0.0.0"
-    api_port: int = 8010
+    api_port: int = 8030
     api_cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",

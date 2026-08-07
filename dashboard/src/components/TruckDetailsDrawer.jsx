@@ -23,7 +23,7 @@ function Row({ k, v, muted, tone }) {
   );
 }
 
-export default function TruckDetailsDrawer({ truck, onClose, onAction }) {
+export default function TruckDetailsDrawer({ truck, onClose, onAction, onReplan }) {
   if (!truck) return null;
 
   const delayed = truck.status === "Delayed" || truck.delayRisk === "severe";
@@ -229,9 +229,13 @@ export default function TruckDetailsDrawer({ truck, onClose, onAction }) {
         <button
           type="button"
           className="pill-btn"
-          onClick={() =>
-            onAction(`Re-route requested for ${truck.id}.`, "info")
-          }
+          onClick={() => {
+            if (onReplan) {
+              onReplan(truck);
+            } else {
+              onAction(`Re-route requested for ${truck.id}.`, "info");
+            }
+          }}
         >
           <RouteIcon size={13} aria-hidden="true" /> Re-route
         </button>

@@ -9,7 +9,7 @@ export default defineConfig({
       // The dashboard reads live fleet, route and constraint data from the
       // LogiPilot backend. Proxying keeps the browser on one origin.
       "/api": {
-        target: "http://127.0.0.1:8010",
+        target: "http://127.0.0.1:8030",
         changeOrigin: true,
       },
     },

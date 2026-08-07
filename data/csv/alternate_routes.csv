@@ -1,53 +1,26 @@
 from,to,via,extra_distance_km,route_type,remarks
-Thiruvananthapuram,Kazhakkoottam,Bypass Road,5,Urban Alternate,City bypass for central congestion
-Kazhakkoottam,Attingal,Old NH66,7,Highway Alternate,Used when main NH66 is blocked
-Attingal,Kallambalam,Service Road,4,Local Alternate,Short bypass around market stretch
-Kallambalam,Varkala,Inner Road,6,Local Alternate,Avoids highway waterlogging
-Attingal,Venjaramoodu,MC Road Link,9,Connector,Inland diversion from coastal route
-Venjaramoodu,Kilimanoor,MC Road,5,State Route,Regular inland alternate
-Kilimanoor,Kottarakkara,MC Road,12,State Route,Long diversion around NH66 issues
-Kollam,Kottarakkara,MC Road,10,Primary Alternate,Standard inland diversion
-Kollam,Attingal,Kottarakkara,15,Long Alternate,Avoids NH66 coastal disruption
-Kollam,Karunagappally,Old Coastal Road,6,Coastal Alternate,Used for partial closures
-Karunagappally,Kayamkulam,Service Road,4,Local Alternate,Supports NH66 congestion relief
-Kayamkulam,Kollam,MC Road,8,Primary Alternate,Given in source data
-Kayamkulam,Haripad,Old NH66,3,Local Alternate,Short relief segment
-Haripad,Alappuzha,Beach Road,7,Coastal Alternate,Used during inland congestion
-Alappuzha,Cherthala,AC Canal Road,6,Scenic Alternate,Avoids town center traffic
-Cherthala,Aroor,Service Lane,5,Local Alternate,Bridge approach relief
-Aroor,Kochi,Container Road,9,Urban Alternate,Bypasses city entry congestion
-Thiruvananthapuram,Nedumangad,SH2,11,Inland Alternate,Exit route from city core
-Nedumangad,Kottarakkara,State Highway,14,Inland Alternate,Useful during NH66 closure
-Kottarakkara,Chengannur,MC Road,10,Primary Alternate,Major northbound inland route
-Chengannur,Mavelikara,MC Road,4,Connector,Parallel to NH66 corridor
-Mavelikara,Kayamkulam,MC Road,5,Connector,Inland access to highway town
-Kottarakkara,Punalur,State Highway,8,Hill Alternate,Used for inland rerouting
-Punalur,Pathanapuram,State Highway,6,Hill Alternate,Alternative eastern corridor
-Pathanapuram,Anchal,State Highway,4,Hill Alternate,Short relief path
-Kundara,Kollam,Bypass Road,5,Urban Alternate,Avoids city center entry
-Sasthamkotta,Karunagappally,Local Road,6,Rural Alternate,Links inland lake region to coast
-Vaikom,Ettumanoor,MC Road,7,Connector,Kottayam side diversion
-Kottayam,Changanassery,MC Road,4,Primary Alternate,Urban connector for KK Road issues
-Kottayam,Pala,SH32,9,Inland Alternate,Main eastern diversion
-Pala,Erattupetta,Hill Road,5,Inland Alternate,Supports KK Road bypass
-Kanjirappally,Mundakayam,KK Road,6,Hill Alternate,Ghat approach route
-Parassala,Neyyattinkara,Old NH66,4,Local Alternate,Southern approach relief
-Neyyattinkara,Balaramapuram,Service Road,5,Local Alternate,Avoids highway bottleneck
-Balaramapuram,Thiruvananthapuram,Inner Ring Road,8,Urban Alternate,Alternate city entry
-Sreekaryam,Pattom,Medical College Road,3,Urban Alternate,Bypasses central junctions
-East Fort,Pattom,MG Road Extension,4,Urban Alternate,Core city redistribution
-Chirayinkeezhu,Attingal,Coastal Link Road,3,Local Alternate,Short diversion on TVM coast
-Kottiyam,Kollam,Bypass,4,Urban Alternate,Industrial area bypass
-Chathannoor,Kollam,Service Road,5,Local Alternate,Alternative to blocked highway stretch
-Ochira,Karunagappally,Old NH66,4,Local Alternate,Useful during event congestion
-Kallambalam,Thiruvananthapuram,MC Road via Venjaramoodu,18,Long Alternate,Full inland route to city
-Varkala,Thiruvananthapuram,Coastal Road,14,Coastal Alternate,Tourism corridor bypass
-Nedumangad,Thiruvananthapuram,Peroorkada Road,7,Urban Alternate,Alternative city access from inland
-Kilimanoor,Attingal,Link Road,4,Connector,Short inter-town diversion
-Kottarakkara,Kollam,State Highway,10,Primary Alternate,Reverse inland corridor
-Alappuzha,Changanassery,AC Road,9,Inland Alternate,Avoids NH66 north section
-Changanassery,Kottayam,MC Road,4,Primary Alternate,Reverse connector
-Pampady,Kottayam,KK Road,3,Local Alternate,Short bypass to town
-Kuravilangad,Ettumanoor,MC Road,6,Connector,North Kottayam relief
-Thalayolaparambu,Vaikom,SH15,4,Connector,Alternative west link
-Aymanam,Kumarakom,Local Road,5,Rural Alternate,Backwater side diversion
+Thiruvananthapuram,Pattom,City Road Bypass,2.6,Bypass Alternate,Real-time bypass around Thiruvananthapuram center congestion
+Pattom,Sreekaryam,Medical College Road Bypass,2.8,Bypass Alternate,Real-time bypass around Pattom center congestion
+Sreekaryam,Kazhakkoottam,NH66 Bypass,3.2,Bypass Alternate,Real-time bypass around Sreekaryam center congestion
+Thiruvananthapuram,East Fort,MG Road Bypass,2.5,Bypass Alternate,Real-time bypass around Thiruvananthapuram center congestion
+East Fort,Balaramapuram,NH66 Bypass,4.2,Bypass Alternate,Real-time bypass around East Fort center congestion
+Balaramapuram,Neyyattinkara,NH66 Bypass,3.5,Bypass Alternate,Real-time bypass around Balaramapuram center congestion
+Neyyattinkara,Parassala,NH66 Bypass,4.5,Bypass Alternate,Real-time bypass around Neyyattinkara center congestion
+Kazhakkoottam,Attingal,NH66 Bypass,5.3,Bypass Alternate,Real-time bypass around Kazhakkoottam center congestion
+Attingal,Kallambalam,NH66 Bypass,3.5,Bypass Alternate,Real-time bypass around Attingal center congestion
+Kallambalam,Varkala,NH66 Bypass,4.4,Bypass Alternate,Real-time bypass around Kallambalam center congestion
+Varkala,Paravur,NH66 Bypass,4.1,Bypass Alternate,Real-time bypass around Varkala center congestion
+Paravur,Chathannoor,NH66 Bypass,3.8,Bypass Alternate,Real-time bypass around Paravur center congestion
+Chathannoor,Kollam,NH66 Bypass,4.4,Bypass Alternate,Real-time bypass around Chathannoor center congestion
+Kollam,Kottiyam,NH66 Bypass,3.2,Bypass Alternate,Real-time bypass around Kollam center congestion
+Kottiyam,Karunagappally,NH66 Bypass,6.2,Bypass Alternate,Real-time bypass around Kottiyam center congestion
+Karunagappally,Ochira,NH66 Bypass,3.5,Bypass Alternate,Real-time bypass around Karunagappally center congestion
+Ochira,Kayamkulam,NH66 Bypass,3.2,Bypass Alternate,Real-time bypass around Ochira center congestion
+Kayamkulam,Haripad,NH66 Bypass,4.1,Bypass Alternate,Real-time bypass around Kayamkulam center congestion
+Haripad,Ambalappuzha,NH66 Bypass,4.4,Bypass Alternate,Real-time bypass around Haripad center congestion
+Ambalappuzha,Alappuzha,NH66 Bypass,3.2,Bypass Alternate,Real-time bypass around Ambalappuzha center congestion
+Alappuzha,Cherthala,NH66 Bypass,5.3,Bypass Alternate,Real-time bypass around Alappuzha center congestion
+Cherthala,Aroor,NH66 Bypass,4.5,Bypass Alternate,Real-time bypass around Cherthala center congestion
+Aroor,Kochi,NH66 Bypass,3.8,Bypass Alternate,Real-time bypass around Aroor center congestion
+Kayamkulam,Mavelikara,MC Road Bypass,3.8,Bypass Alternate,Real-time bypass around Kayamkulam center congestion
+Mavelikara,Chengannur,MC Road Bypass,3.8,Bypass Alternate,Real-time bypass around Mavelikara center congestion

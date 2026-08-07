@@ -1,4 +1,13 @@
-from app.routing.cost import CostModel, CostWeights, EdgeAttributes, VehicleContext
+from app.routing.cost import (
+    CostModel,
+    CostWeights,
+    EdgeAttributes,
+    EnvironmentalCondition,
+    OptimizationMode,
+    ProductType,
+    ShipmentContext,
+    VehicleContext,
+)
 from app.routing.engine import (
     PlanningReport,
     RouteCandidate,
@@ -33,10 +42,12 @@ __all__ = [
     "CostWeights",
     "DijkstraStrategy",
     "EdgeAttributes",
+    "EnvironmentalCondition",
     "GraphOverlay",
     "GraphProjection",
     "MonitoringEvent",
     "MonitoringEventType",
+    "OptimizationMode",
     "PlanningReport",
     "ReplanOutcome",
     "ReplanRequest",
@@ -45,8 +56,10 @@ __all__ = [
     "RouteStrategy",
     "RoutingEngine",
     "RoutingStrategyFactory",
+    "ProductType",
     "SearchResult",
     "SegmentReplanner",
+    "ShipmentContext",
     "VehicleContext",
     "YenKShortestStrategy",
     "get_replanner",
