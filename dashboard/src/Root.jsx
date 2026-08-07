@@ -9,6 +9,21 @@ import {
   saveSession,
 } from "./config/demoAuth.js";
 
+const THEME_KEY = "logipilot.theme";
+
+function getInitialTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    // Storage can be unavailable in private browsing.
+  }
+
+  return window.matchMedia?.("(prefers-color-scheme: light)").matches
+    ? "light"
+    : "dark";
+}
+
 // Lazy so the driver console and login visuals are not in the admin's
 // first paint, and vice versa.
 const LoginPage = lazy(() => import("./pages/LoginPage.jsx"));
@@ -34,6 +49,20 @@ function RouteLoader({ path }) {
 export default function Root() {
   const [path, setPath] = useState(window.location.pathname);
   const [session, setSession] = useState(() => loadSession());
+  const [theme, setTheme] = useState(getInitialTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      // Non-critical preference persistence.
+    }
+  }, [theme]);
+
+  const onToggleTheme = useCallback(() => {
+    setTheme((value) => (value === "dark" ? "light" : "dark"));
+  }, []);
 
   const navigate = useCallback((next, { replace = false } = {}) => {
     if (replace) window.history.replaceState({}, "", next);
@@ -80,7 +109,13 @@ export default function Root() {
 
   const render = () => {
     if (!session || path === "/login") {
-      return <LoginPage onSignIn={onSignIn} />;
+      return (
+        <LoginPage
+          onSignIn={onSignIn}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
+      );
     }
     if (path === "/vehicle") {
       return (
@@ -88,11 +123,19 @@ export default function Root() {
           session={session}
           onSignOut={onSignOut}
           onNavigate={navigate}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
       );
     }
     return (
-      <App session={session} onSignOut={onSignOut} onNavigate={navigate} />
+      <App
+        session={session}
+        onSignOut={onSignOut}
+        onNavigate={navigate}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
     );
   };
 

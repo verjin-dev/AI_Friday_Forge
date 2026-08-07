@@ -67,7 +67,7 @@ export default function Sidebar({
         </span>
         {showLabels && (
           <span className="brand-text desktop-only">
-            <h1>Logipilot AI</h1>
+            <h1>LogiPilot Ai</h1>
             <span>Fleet operations</span>
           </span>
         )}

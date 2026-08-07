@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import L from "leaflet";
 import {
   ArrowLeft,
   Crosshair,
@@ -31,6 +32,11 @@ const FILTERS = [
   { key: "At depot", label: "At depot" },
   { key: "risk", label: "High risk" },
   { key: "blocked", label: "No compliant route" },
+];
+
+const MAP_PROVIDERS = [
+  { key: "google", label: "Google" },
+  { key: "osm", label: "OSM" },
 ];
 
 const DARK_STYLE = [
@@ -103,6 +109,126 @@ function pinIcon(colour, label) {
   };
 }
 
+function osmIcon(colour, label) {
+  return L.divIcon({
+    className: "osm-pin",
+    html: `<span style="--pin:${colour}">${label || ""}</span>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
+
+function OpenStreetMap({
+  visibleTrucks,
+  selectedTruck,
+  routeRequest,
+  onSelectTruck,
+  onStatus,
+  actionsRef,
+}) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const layerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return undefined;
+
+    mapRef.current = L.map(containerRef.current, {
+      center: [KERALA_CENTRE.lat, KERALA_CENTRE.lng],
+      zoom: 7,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(mapRef.current);
+
+    L.control.attribution({ prefix: false }).addTo(mapRef.current);
+    layerRef.current = L.layerGroup().addTo(mapRef.current);
+    actionsRef.current = {
+      zoom: (delta) => mapRef.current?.setZoom((mapRef.current.getZoom() || 7) + delta),
+      recenter: () => mapRef.current?.setView([KERALA_CENTRE.lat, KERALA_CENTRE.lng], 7),
+    };
+    setTimeout(() => mapRef.current?.invalidateSize(), 80);
+
+    return () => {
+      actionsRef.current = null;
+      mapRef.current?.remove();
+      mapRef.current = null;
+      layerRef.current = null;
+    };
+  }, [actionsRef]);
+
+  useEffect(() => {
+    if (!mapRef.current || !layerRef.current) return;
+
+    layerRef.current.clearLayers();
+    const bounds = [];
+
+    const addStop = (point, index) => {
+      const latLng = [point.lat, point.lng];
+      bounds.push(latLng);
+      L.marker(latLng, {
+        icon: osmIcon(STOP_COLOUR, String(index + 1)),
+        title: point.name || `Stop ${index + 1}`,
+      }).addTo(layerRef.current);
+    };
+
+    const stops = selectedTruck?.stops || [];
+    if (stops.length >= 2) {
+      const route = stops.map((stop) => [stop.lat, stop.lng]);
+      L.polyline(route, {
+        color: SELECTED_COLOUR,
+        weight: 5,
+        opacity: 0.92,
+        lineCap: "round",
+      }).addTo(layerRef.current);
+      stops.forEach(addStop);
+      onStatus?.(`${selectedTruck.id} · ${stops.length} planned stops · OpenStreetMap`);
+    } else {
+      visibleTrucks
+        .filter((truck) => truck.position)
+        .forEach((truck) => {
+          const colour =
+            truck.id === selectedTruck?.id
+              ? SELECTED_COLOUR
+              : STATUS_COLOUR[truck.status] || "#7886ff";
+          const latLng = [truck.position.lat, truck.position.lng];
+          bounds.push(latLng);
+          const marker = L.marker(latLng, {
+            icon: osmIcon(colour),
+            title: `${truck.id} · ${truck.route} · ${truck.status}`,
+          }).addTo(layerRef.current);
+          if (onSelectTruck) marker.on("click", () => onSelectTruck(truck));
+        });
+      onStatus?.(
+        routeRequest?.origin && routeRequest?.destination
+          ? "OpenStreetMap view · Google handles typed route directions"
+          : "OpenStreetMap fleet view"
+      );
+    }
+
+    if (bounds.length > 1) {
+      mapRef.current.fitBounds(bounds, { padding: [42, 42], maxZoom: 10 });
+    } else if (bounds.length === 1) {
+      mapRef.current.setView(bounds[0], 9);
+    } else {
+      mapRef.current.setView([KERALA_CENTRE.lat, KERALA_CENTRE.lng], 7);
+    }
+  }, [visibleTrucks, selectedTruck, routeRequest, onSelectTruck, onStatus]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="map-canvas osm-canvas"
+      role="application"
+      aria-label="OpenStreetMap fleet map"
+    />
+  );
+}
+
 export default function FleetMap({
   trucks,
   selectedTruck,
@@ -112,7 +238,10 @@ export default function FleetMap({
   onSelectTruck,
   onBackToFleet,
   showFleetControls = false,
+  mapProvider,
+  onMapProviderChange,
 }) {
+  const [localProvider, setLocalProvider] = useState("google");
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const overlaysRef = useRef([]);
@@ -120,6 +249,7 @@ export default function FleetMap({
   const clustererRef = useRef(null);
   const directionsRef = useRef(null);
   const trafficRef = useRef(null);
+  const osmActionsRef = useRef(null);
 
   const [ready, setReady] = useState(false);
   const [failure, setFailure] = useState(null);
@@ -128,6 +258,15 @@ export default function FleetMap({
   const [chosen, setChosen] = useState(0);
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+
+  const provider = mapProvider || localProvider;
+  const setProvider = useCallback(
+    (next) => {
+      if (onMapProviderChange) onMapProviderChange(next);
+      else setLocalProvider(next);
+    },
+    [onMapProviderChange]
+  );
 
   const visibleTrucks = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -173,6 +312,7 @@ export default function FleetMap({
 
   // --- initialise ---------------------------------------------------------
   useEffect(() => {
+    if (provider !== "google") return undefined;
     let cancelled = false;
 
     loadGoogleMaps()
@@ -235,11 +375,11 @@ export default function FleetMap({
     return () => {
       cancelled = true;
     };
-  }, [onError, report]);
+  }, [onError, provider, report]);
 
   // --- fleet markers, clustered ------------------------------------------
   useEffect(() => {
-    if (!ready || !mapRef.current) return;
+    if (provider !== "google" || !ready || !mapRef.current) return;
     const google = window.google;
 
     clustererRef.current?.clearMarkers();
@@ -269,11 +409,11 @@ export default function FleetMap({
       clustererRef.current = new MarkerClusterer({ map: mapRef.current });
     }
     clustererRef.current.addMarkers(fleetMarkersRef.current);
-  }, [ready, visibleTrucks, selectedTruck, onSelectTruck]);
+  }, [provider, ready, visibleTrucks, selectedTruck, onSelectTruck]);
 
   // --- routes -------------------------------------------------------------
   useEffect(() => {
-    if (!ready || !mapRef.current || !directionsRef.current) return;
+    if (provider !== "google" || !ready || !mapRef.current || !directionsRef.current) return;
 
     const google = window.google;
     clearOverlays();
@@ -449,7 +589,7 @@ export default function FleetMap({
         );
       }
     );
-  }, [ready, routeRequest, selectedTruck, chosen, clearOverlays, report]);
+  }, [provider, ready, routeRequest, selectedTruck, chosen, clearOverlays, report]);
 
   useEffect(() => setChosen(0), [routeRequest]);
 
@@ -460,7 +600,16 @@ export default function FleetMap({
 
   return (
     <div className="map-shell">
-      {failure ? (
+      {provider === "osm" ? (
+        <OpenStreetMap
+          visibleTrucks={visibleTrucks}
+          selectedTruck={selectedTruck}
+          routeRequest={routeRequest}
+          onSelectTruck={onSelectTruck}
+          onStatus={report}
+          actionsRef={osmActionsRef}
+        />
+      ) : failure ? (
         <div className="map-empty">
           <div>
             <strong style={{ display: "block", marginBottom: 6 }}>
@@ -486,7 +635,21 @@ export default function FleetMap({
           </button>
         )}
         <Navigation size={13} aria-hidden="true" style={{ color: "var(--cyan)" }} />
-        <span>{failure ? "Offline" : status}</span>
+        <span>{provider === "google" && failure ? "Offline" : status}</span>
+      </div>
+
+      <div className="map-overlay map-provider" role="group" aria-label="Map provider">
+        {MAP_PROVIDERS.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={provider === item.key ? "active" : ""}
+            onClick={() => setProvider(item.key)}
+            aria-pressed={provider === item.key}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {showFleetControls && (
@@ -539,15 +702,33 @@ export default function FleetMap({
       )}
 
       <div className="map-overlay map-controls">
-        <button type="button" onClick={() => zoom(1)} title="Zoom in" aria-label="Zoom in">
+        <button
+          type="button"
+          onClick={() =>
+            provider === "google" ? zoom(1) : osmActionsRef.current?.zoom(1)
+          }
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
           <Plus size={14} />
         </button>
-        <button type="button" onClick={() => zoom(-1)} title="Zoom out" aria-label="Zoom out">
+        <button
+          type="button"
+          onClick={() =>
+            provider === "google" ? zoom(-1) : osmActionsRef.current?.zoom(-1)
+          }
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
           <Minus size={14} />
         </button>
         <button
           type="button"
-          onClick={() => mapRef.current?.setCenter(KERALA_CENTRE)}
+          onClick={() =>
+            provider === "google"
+              ? mapRef.current?.setCenter(KERALA_CENTRE)
+              : osmActionsRef.current?.recenter()
+          }
           title="Recentre on Kerala"
           aria-label="Recentre on Kerala"
         >

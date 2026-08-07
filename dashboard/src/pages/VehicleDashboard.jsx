@@ -4,8 +4,10 @@ import {
   Gauge,
   LayoutDashboard,
   MessageSquare,
+  Moon,
   Phone,
   Route as RouteIcon,
+  Sun,
   TriangleAlert,
 } from "lucide-react";
 
@@ -28,7 +30,13 @@ function KV({ k, v, muted }) {
   );
 }
 
-export default function VehicleDashboard({ session, onSignOut, onNavigate }) {
+export default function VehicleDashboard({
+  session,
+  onSignOut,
+  onNavigate,
+  theme,
+  onToggleTheme,
+}) {
   const [fleet, setFleet] = useState({ trucks: [], alerts: [] });
   const [activeId, setActiveId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +90,8 @@ export default function VehicleDashboard({ session, onSignOut, onNavigate }) {
         trucks={fleet.trucks}
         onSelect={setActiveId}
         onSignOut={onSignOut}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
 
       <main className="vehicle-main">
@@ -277,16 +287,25 @@ export default function VehicleDashboard({ session, onSignOut, onNavigate }) {
               <RouteIcon size={14} aria-hidden="true" />
               Request re-route
             </button>
-            {session?.role === ROLES.ADMIN && (
-              <button
-                type="button"
+          {session?.role === ROLES.ADMIN && (
+            <button
+              type="button"
                 className="pill-btn"
                 onClick={() => onNavigate("/")}
               >
                 <LayoutDashboard size={14} aria-hidden="true" />
                 Operations
-              </button>
-            )}
+            </button>
+          )}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onToggleTheme}
+            title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           </div>
         </section>
       </main>

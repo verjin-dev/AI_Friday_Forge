@@ -17,7 +17,7 @@ import { fallbackMetrics, fallbackTrucks, fetchFleet } from "./data/fleet.js";
 
 const TOAST_MS = 3600;
 
-export default function App({ session, onSignOut, onNavigate }) {
+export default function App({ session, onSignOut, onNavigate, theme, onToggleTheme }) {
   // --- dashboard state ---
   const [statusFilter, setStatusFilter] = useState("All status");
   const [search, setSearch] = useState("");
@@ -27,7 +27,6 @@ export default function App({ session, onSignOut, onNavigate }) {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [routeRequest, setRouteRequest] = useState(null);
-  const [theme, setTheme] = useState("dark");
   const [selectedRows, setSelectedRows] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [sort, setSort] = useState({ key: "id", direction: "asc" });
@@ -56,10 +55,6 @@ export default function App({ session, onSignOut, onNavigate }) {
     toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
     return () => clearTimeout(toastTimer.current);
   }, [toast]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
 
   const load = useCallback(
     async (announce = false) => {
@@ -229,9 +224,7 @@ export default function App({ session, onSignOut, onNavigate }) {
         return (
           <SettingsPage
             theme={theme}
-            onToggleTheme={() =>
-              setTheme((value) => (value === "dark" ? "light" : "dark"))
-            }
+            onToggleTheme={onToggleTheme}
           />
         );
       default:
@@ -282,12 +275,10 @@ export default function App({ session, onSignOut, onNavigate }) {
             search={search}
             onSearch={handleSearch}
             theme={theme}
-            onToggleTheme={() =>
-              setTheme((value) => (value === "dark" ? "light" : "dark"))
-            }
+            onToggleTheme={onToggleTheme}
             onAskAI={() =>
               notify(
-                "Ask AI runs the 12-agent workflow — open the LogiPilot agent console for the full trace.",
+                "Ask AI runs the 12-agent workflow — open the LogiPilot Ai agent console for the full trace.",
                 "info"
               )
             }
