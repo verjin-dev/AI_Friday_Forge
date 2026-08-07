@@ -14,6 +14,7 @@ def _now() -> datetime:
 class AgentName(str, Enum):
     PLANNER = "planner"
     SECURITY = "security"
+    GUARDRAIL = "guardrail"
     SEARCH = "search"
     KNOWLEDGE = "knowledge"
     TOOL = "tool"
@@ -24,6 +25,7 @@ class AgentName(str, Enum):
     EXPLANATION = "explanation"
     OBSERVABILITY = "observability"
     SELF_IMPROVING = "self_improving"
+
 
 
 class AgentStatus(str, Enum):
@@ -107,6 +109,20 @@ class SecurityVerdict(BaseModel):
         if not self.findings:
             return SecuritySeverity.INFO
         return max(self.findings, key=lambda f: order.index(f.severity)).severity
+
+
+class GuardrailResult(BaseModel):
+    allowed: bool = True
+    sanitized_prompt: str | None = None
+    pi_findings: list[SecurityFinding] = Field(default_factory=list)
+    pii_findings: list[SecurityFinding] = Field(default_factory=list)
+    toxicity_findings: list[SecurityFinding] = Field(default_factory=list)
+    tool_abuse_findings: list[SecurityFinding] = Field(default_factory=list)
+    data_leakage_findings: list[SecurityFinding] = Field(default_factory=list)
+    pii_action_taken: str = "mask"
+    output_validated: bool = True
+    blocked_reason: str | None = None
+
 
 
 # ----------------------------------------------------------------------
@@ -372,6 +388,7 @@ class ChatResponse(BaseModel):
     blocked: bool = False
     plan: ExecutionPlan | None = None
     security: SecurityVerdict | None = None
+    guardrail: GuardrailResult | None = None
     graph_context: GraphContext | None = None
     search_results: list[SearchResult] = Field(default_factory=list)
     tool_results: list[ToolResult] = Field(default_factory=list)

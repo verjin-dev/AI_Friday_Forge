@@ -126,6 +126,9 @@ class Settings(BaseSettings):
     #: Fleet time valuation, used to convert money into effective minutes.
     cost_per_minute: float = 8.0
     fuel_cost_per_km: float = 7.5
+    fleet_cost_per_km: float = 12.5
+    fleet_cost_per_hour: float = 450.0
+
 
     # ------------------------------------------------------------------
     # Search

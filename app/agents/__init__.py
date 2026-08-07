@@ -1,5 +1,6 @@
 from app.agents.base import AgentOutcome, BaseAgent
 from app.agents.explanation import ExplanationAgent
+from app.agents.guardrail import GuardrailAgent
 from app.agents.knowledge import KnowledgeAgent
 from app.agents.observability import ObservabilityAgent
 from app.agents.optimization import OptimizationAgent
@@ -17,6 +18,7 @@ __all__ = [
     "BaseAgent",
     "PlannerAgent",
     "SecurityAgent",
+    "GuardrailAgent",
     "SearchAgent",
     "KnowledgeAgent",
     "ToolAgent",
@@ -28,3 +30,4 @@ __all__ = [
     "ObservabilityAgent",
     "SelfImprovingAgent",
 ]
+

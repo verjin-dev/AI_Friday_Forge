@@ -55,7 +55,9 @@ function normaliseTruck(truck) {
     timeline: truck.timeline || [],
     predictive: truck.predictive || null,
     cargo: truck.cargo || null,
+    telemetry: truck.telemetry || null,
     untracked: truck.untracked || [],
+    replanOutcome: truck.replan_outcome || null,
   };
 }
 

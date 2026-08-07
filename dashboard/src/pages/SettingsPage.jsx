@@ -74,11 +74,16 @@ export default function SettingsPage({ theme, onToggleTheme }) {
                   hint={health?.llm?.model}
                 />
                 <Row
+                  label="Guardrail Agent"
+                  value={health?.guardrail?.agent_active ? "active (pre & post gate)" : "inactive"}
+                  hint={`PI, PII (${health?.guardrail?.pii_action || "mask"}), Toxicity, Data Leakage & Output Validation`}
+                />
+                <Row
                   label="LangSmith tracing"
                   value={
                     health?.observability?.langsmith_tracing ? "on" : "off"
                   }
-                  hint={health?.observability?.project}
+                  hint={`${health?.observability?.project || "enterprise-ai-platform"} (Graph, Agents, Tokens, Cost, Retries, Tools)`}
                 />
                 <Row
                   label="Tools registered"

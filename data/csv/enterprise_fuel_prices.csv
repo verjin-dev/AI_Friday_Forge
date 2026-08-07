@@ -1,0 +1,9 @@
+fuel_type,price_per_liter,price_per_km,co2_kg_per_liter,last_updated,source
+diesel,94.50,14.50,2.68,2026-08-01,IndianOil IOCL Kerala
+diesel,99.80,15.30,2.65,2026-08-01,Bharat Petroleum BPCL Kerala
+petrol,107.50,10.75,2.31,2026-08-01,HPCL Kerala
+petrol,113.20,11.32,2.29,2026-08-01,Bharat Petroleum Speed Kerala
+electric,15.00,2.25,0.82,2026-08-01,KSEB Commercial Fast EV Charging
+electric,9.50,1.43,0.78,2026-08-01,KSEB Fleet Depot AC Slow Charging
+cng,88.50,5.90,1.95,2026-08-01,AG&P Pratham Automotive CNG Kerala
+cng,86.00,5.73,1.93,2026-08-01,AG&P Pratham Bulk Commercial CNG

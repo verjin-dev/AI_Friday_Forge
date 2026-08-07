@@ -46,12 +46,22 @@ async def health() -> dict:
             "langsmith_tracing": settings.langsmith_tracing,
             "project": settings.langsmith_project,
         },
+        "guardrail": {
+            "agent_active": True,
+            "pi_protection": True,
+            "pii_protection": True,
+            "pii_action": getattr(settings, "security_pii_action", "mask"),
+            "toxicity_detection": True,
+            "data_leakage_prevention": True,
+            "output_validation": True,
+        },
         "workflow": {
             "max_reflection_loops": settings.workflow_max_reflection_loops,
             "confidence_threshold": settings.workflow_confidence_threshold,
             "optimization_enabled": settings.workflow_enable_optimization,
             "human_in_the_loop": settings.workflow_human_in_the_loop,
         },
+
     }
 
 

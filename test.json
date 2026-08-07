@@ -1,0 +1,340 @@
+{
+    "replanned": true,
+    "reason": "Flash Flood I002 - Submerged roadway impassable",
+    "kept_prefix": [
+        "Attingal"
+    ],
+    "replanned_from": "Attingal",
+    "route": {
+        "rank": 1,
+        "stops": [
+            "Attingal",
+            "Venjaramoodu",
+            "Kilimanoor",
+            "Kottarakkara",
+            "Kundara",
+            "Kollam"
+        ],
+        "legs": [
+            {
+                "from": "Attingal",
+                "to": "Venjaramoodu",
+                "distance_km": 14.0,
+                "road_name": "Attingal-Venjaramoodu Road",
+                "kind": "primary",
+                "via": null,
+                "cost": 306.04
+            },
+            {
+                "from": "Venjaramoodu",
+                "to": "Kilimanoor",
+                "distance_km": 14.0,
+                "road_name": "MC Road",
+                "kind": "primary",
+                "via": null,
+                "cost": 276.32
+            },
+            {
+                "from": "Kilimanoor",
+                "to": "Kottarakkara",
+                "distance_km": 32.0,
+                "road_name": "MC Road",
+                "kind": "primary",
+                "via": null,
+                "cost": 631.6
+            },
+            {
+                "from": "Kottarakkara",
+                "to": "Kundara",
+                "distance_km": 13.0,
+                "road_name": "Kollam-Shenkottai Road",
+                "kind": "primary",
+                "via": null,
+                "cost": 273.03
+            },
+            {
+                "from": "Kundara",
+                "to": "Kollam",
+                "distance_km": 14.0,
+                "road_name": "Kollam-Shenkottai Road",
+                "kind": "primary",
+                "via": null,
+                "cost": 294.04
+            }
+        ],
+        "total_distance_km": 87.0,
+        "estimated_travel_minutes": 614.2,
+        "route_cost": 1781.03,
+        "route_score": 1.0,
+        "logistics_score": 0.881,
+        "confidence": 0.95,
+        "constraint_violations": [],
+        "blocked_edges": [],
+        "cost_breakdown": {
+            "total_dynamic_cost": 1781.03,
+            "travel_time_term": 614.16,
+            "distance_term": 65.25,
+            "congestion_term": 0.0,
+            "weather_term": 0.0,
+            "money_term": 407.8,
+            "risk_term": 0.0,
+            "carbon_term": 582.9,
+            "co2_emissions_kg": 58.29,
+            "hub_congestion_term": 0.0,
+            "capacity_penalty": 0.0,
+            "driver_hos_penalty": 0.0,
+            "sla_penalty": 0.0,
+            "road_quality_term": 82.92,
+            "historical_delay_term": 0.0
+        },
+        "uses_alternate": false,
+        "algorithm": "astar",
+        "label": "Route 1: Attingal → Kollam via Venjaramoodu, Kilimanoor, Kottarakkara, … (87 km)"
+    },
+    "original_distance_km": 0.0,
+    "new_distance_km": 87.0,
+    "added_distance_km": 87.0,
+    "segments_reused": 0,
+    "segments_changed": 5,
+    "report": {
+        "algorithm": "astar",
+        "algorithm_reason": "A* with geographic heuristic",
+        "candidates_requested": 1,
+        "candidates_found": 1,
+        "nodes_expanded": 10,
+        "duration_ms": 2.8,
+        "overlay_applied": [
+            "node Thiruvananthapuram disabled: High Accident at Thiruvananthapuram (I049)",
+            "node Kazhakkoottam disabled: High Flash Flood at Kazhakkoottam (I002)",
+            "node Sreekaryam +12 min: Medium Road Work at Sreekaryam (I009)",
+            "node Parassala +12 min: Medium Road Work at Parassala (I009)",
+            "node Attingal disabled: High Flash Flood at Attingal (I002)",
+            "node Venjaramoodu +12 min: Medium Flash Flood at Venjaramoodu (I003)",
+            "node Anchal disabled: High Accident at Anchal (I049)",
+            "node Paravur disabled: Flash Flood I002 - Submerged roadway impassable",
+            "edge Attingal -> Kollam disabled: Flash Flood I002 - Submerged roadway impassable",
+            "edge Kollam -> Attingal disabled: Flash Flood I002 - Submerged roadway impassable"
+        ],
+        "graph_nodes": 55,
+        "notes": []
+    },
+    "note": "The diversion adds 87 km. A full replan from the origin may be shorter, but would discard roads already driven.",
+    "coordinates": {
+        "Alappuzha": {
+            "latitude": 9.4981,
+            "longitude": 76.3388
+        },
+        "Ambalappuzha": {
+            "latitude": 9.38,
+            "longitude": 76.35
+        },
+        "Anchal": {
+            "latitude": 8.906,
+            "longitude": 76.92
+        },
+        "Aroor": {
+            "latitude": 9.869,
+            "longitude": 76.305
+        },
+        "Attingal": {
+            "latitude": 8.6957,
+            "longitude": 76.8155
+        },
+        "Balaramapuram": {
+            "latitude": 8.423,
+            "longitude": 77.033
+        },
+        "Changanassery": {
+            "latitude": 9.445,
+            "longitude": 76.54
+        },
+        "Chathannoor": {
+            "latitude": 8.849,
+            "longitude": 76.71
+        },
+        "Chengannur": {
+            "latitude": 9.315,
+            "longitude": 76.615
+        },
+        "Cherthala": {
+            "latitude": 9.684,
+            "longitude": 76.336
+        },
+        "Chirayinkeezhu": {
+            "latitude": 8.669,
+            "longitude": 76.783
+        },
+        "East Fort": {
+            "latitude": 8.4855,
+            "longitude": 76.945
+        },
+        "Erattupetta": {
+            "latitude": 9.69,
+            "longitude": 76.78
+        },
+        "Ettumanoor": {
+            "latitude": 9.67,
+            "longitude": 76.558
+        },
+        "Haripad": {
+            "latitude": 9.2833,
+            "longitude": 76.4667
+        },
+        "Kaduthuruthy": {
+            "latitude": 9.77,
+            "longitude": 76.49
+        },
+        "Kalathipady": {
+            "latitude": 9.58,
+            "longitude": 76.53
+        },
+        "Kallambalam": {
+            "latitude": 8.778,
+            "longitude": 76.769
+        },
+        "Kanjirappally": {
+            "latitude": 9.56,
+            "longitude": 76.79
+        },
+        "Karunagappally": {
+            "latitude": 9.054,
+            "longitude": 76.534
+        },
+        "Kayamkulam": {
+            "latitude": 9.18,
+            "longitude": 76.501
+        },
+        "Kazhakkoottam": {
+            "latitude": 8.5674,
+            "longitude": 76.87
+        },
+        "Kilimanoor": {
+            "latitude": 8.777,
+            "longitude": 76.876
+        },
+        "Kochi": {
+            "latitude": 9.9312,
+            "longitude": 76.2673
+        },
+        "Kollam": {
+            "latitude": 8.8932,
+            "longitude": 76.6141
+        },
+        "Kottarakkara": {
+            "latitude": 9.0,
+            "longitude": 76.7833
+        },
+        "Kottayam": {
+            "latitude": 9.5916,
+            "longitude": 76.5222
+        },
+        "Kottiyam": {
+            "latitude": 8.876,
+            "longitude": 76.658
+        },
+        "Kumarakom": {
+            "latitude": 9.618,
+            "longitude": 76.43
+        },
+        "Kundara": {
+            "latitude": 8.933,
+            "longitude": 76.683
+        },
+        "Kuravilangad": {
+            "latitude": 9.753,
+            "longitude": 76.558
+        },
+        "Mannar": {
+            "latitude": 9.322,
+            "longitude": 76.533
+        },
+        "Mavelikara": {
+            "latitude": 9.254,
+            "longitude": 76.549
+        },
+        "Mundakayam": {
+            "latitude": 9.54,
+            "longitude": 76.89
+        },
+        "Nedumangad": {
+            "latitude": 8.603,
+            "longitude": 77.0
+        },
+        "Neyyattinkara": {
+            "latitude": 8.4,
+            "longitude": 77.087
+        },
+        "Ochira": {
+            "latitude": 9.136,
+            "longitude": 76.506
+        },
+        "Pala": {
+            "latitude": 9.714,
+            "longitude": 76.683
+        },
+        "Palayam": {
+            "latitude": 8.501,
+            "longitude": 76.949
+        },
+        "Pampady": {
+            "latitude": 9.51,
+            "longitude": 76.62
+        },
+        "Parassala": {
+            "latitude": 8.339,
+            "longitude": 77.147
+        },
+        "Paravur": {
+            "latitude": 8.813,
+            "longitude": 76.669
+        },
+        "Pathanamthitta": {
+            "latitude": 9.26667,
+            "longitude": 76.78333
+        },
+        "Pathanapuram": {
+            "latitude": 9.093,
+            "longitude": 76.856
+        },
+        "Pattom": {
+            "latitude": 8.518,
+            "longitude": 76.945
+        },
+        "Punalur": {
+            "latitude": 9.0117,
+            "longitude": 76.9285
+        },
+        "Sasthamkotta": {
+            "latitude": 9.043,
+            "longitude": 76.627
+        },
+        "Sreekaryam": {
+            "latitude": 8.551,
+            "longitude": 76.908
+        },
+        "Thakazhy": {
+            "latitude": 9.381,
+            "longitude": 76.421
+        },
+        "Thalayolaparambu": {
+            "latitude": 9.8,
+            "longitude": 76.47
+        },
+        "Thiruvananthapuram": {
+            "latitude": 8.5241,
+            "longitude": 76.9366
+        },
+        "Vaikom": {
+            "latitude": 9.748,
+            "longitude": 76.396
+        },
+        "Varkala": {
+            "latitude": 8.7379,
+            "longitude": 76.7163
+        },
+        "Venjaramoodu": {
+            "latitude": 8.687,
+            "longitude": 76.906
+        }
+    }
+}

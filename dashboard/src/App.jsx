@@ -205,39 +205,44 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
               lng: c?.longitude ?? null,
             };
           });
-          const newRouteStr = `${newStops[0].name} to ${newStops[newStops.length - 1].name}`;
+          // Include an intermediate waypoint in the label so the user can see
+          // the route changed even when origin/destination stay the same.
+          const newRouteStr = newStops.length > 2
+            ? `${newStops[0].name} via ${newStops[Math.floor(newStops.length / 2)].name} to ${newStops[newStops.length - 1].name}`
+            : `${newStops[0].name} to ${newStops[newStops.length - 1].name}`;
+
+          const addedKm = Number(outcome.added_distance_km || 0);
+          const newDistanceKm = (truck.distanceKm || 0) + addedKm;
+          const distLabel = addedKm > 0 ? `+${addedKm.toFixed(1)} km` : `+0 km detour`;
+          const rerouteNote = `Re-routed via segment replanner (${distLabel})`;
+
+          // Shared update payload — keeps fleet.trucks, selectedTruck, and
+          // detailTruck in sync so every part of the UI reflects the new route.
+          const updatedFields = {
+            stops: newStops,
+            route: newRouteStr,
+            distanceKm: newDistanceKm,
+            status: "On route",
+            feasible: true,
+            next_stop: newStops.length > 1 ? newStops[1].name : truck.next_stop,
+            distance_remaining_km: outcome.added_distance_km != null
+              ? (truck.distance_remaining_km || truck.distanceKm || 0) + outcome.added_distance_km
+              : truck.distance_remaining_km,
+            softViolations: [rerouteNote],
+            replanOutcome: outcome,
+          };
 
           setFleet((prev) => ({
             ...prev,
             trucks: prev.trucks.map((t) => {
               if (t.id === truck.id) {
-                return {
-                  ...t,
-                  stops: newStops,
-                  route: newRouteStr,
-                  distanceKm: (t.distanceKm || 0) + (outcome.added_distance_km || 0),
-                  status: "On route",
-                  feasible: true,
-                  softViolations: [
-                    `Re-routed via segment replanner (+${
-                      outcome.added_distance_km || 0
-                    } km)`,
-                  ],
-                };
+                return { ...t, ...updatedFields };
               }
               return t;
             }),
           }));
 
-          const updatedTruck = {
-            ...truck,
-            stops: newStops,
-            route: newRouteStr,
-            distanceKm: (truck.distanceKm || 0) + (outcome.added_distance_km || 0),
-            status: "On route",
-            feasible: true,
-          };
-
+          const updatedTruck = { ...truck, ...updatedFields };
           setSelectedTruck(updatedTruck);
           setDetailTruck(updatedTruck);
 

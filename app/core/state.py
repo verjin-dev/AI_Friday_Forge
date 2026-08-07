@@ -8,6 +8,7 @@ from app.core.models import (
     ExecutionPlan,
     Explanation,
     GraphContext,
+    GuardrailResult,
     OptimizationResult,
     ReasoningOutput,
     ReflectionVerdict,
@@ -17,6 +18,7 @@ from app.core.models import (
     ToolResult,
     ValidationReport,
 )
+
 
 
 def merge_metrics(left: RunMetrics | None, right: RunMetrics | None) -> RunMetrics:
@@ -102,6 +104,7 @@ class PlatformState(TypedDict, total=False):
     # --- agent outputs ---
     plan: ExecutionPlan | None
     security: SecurityVerdict | None
+    guardrail: GuardrailResult | None
     graph_context: Annotated[GraphContext | None, merge_graph_context]
     search_results: Annotated[list[SearchResult], merge_search_results]
     tool_results: Annotated[list[ToolResult], operator.add]
@@ -142,6 +145,7 @@ def new_state(
         history=history or [],
         plan=None,
         security=None,
+        guardrail=None,
         graph_context=None,
         search_results=[],
         tool_results=[],

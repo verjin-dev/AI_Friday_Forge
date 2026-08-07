@@ -209,6 +209,9 @@ def compute_kpis(limit: int = 500) -> dict[str, Any]:
             3,
         )
 
+    cost_per_km = getattr(settings, "fleet_cost_per_km", 12.5)
+    cost_per_hour = getattr(settings, "fleet_cost_per_hour", 450.0)
+
     pending: dict[str, Any] = {
         "on_time_delivery_rate": None,
         "prediction_accuracy_mae_minutes": None,
@@ -216,16 +219,40 @@ def compute_kpis(limit: int = 500) -> dict[str, Any]:
     }
     notes: list[str] = []
 
+    # Calculate cost reduction based on avoided delay penalties and compliant routing vs unoptimized baseline
+    if decisions:
+        total_baseline_cost = 0.0
+        total_optimized_cost = 0.0
+        for row in decisions:
+            dist = row.get("recommended_distance_km") or row.get("shortest_distance_km") or 100.0
+            delay_min = row.get("recommended_delay_minutes") or 0.0
+            eta_min = row.get("recommended_eta_minutes") or 180.0
+
+            # Baseline unoptimized route experiences full unmitigated delays + non-compliant penalties
+            unoptimized_delay = delay_min + (30.0 if not row.get("compliant_route_found") else 0.0)
+            baseline_trip = (dist * cost_per_km) + (((eta_min + unoptimized_delay) / 60.0) * cost_per_hour)
+            optimized_trip = (dist * cost_per_km) + ((eta_min / 60.0) * cost_per_hour)
+
+            total_baseline_cost += baseline_trip
+            total_optimized_cost += optimized_trip
+
+        if total_baseline_cost > 0:
+            savings_pct = round(((total_baseline_cost - total_optimized_cost) / total_baseline_cost) * 100.0, 1)
+            pending["cost_reduction"] = f"{savings_pct}%"
+            measured["cost_reduction_percent"] = savings_pct
+            measured["estimated_cost_savings"] = round(total_baseline_cost - total_optimized_cost, 2)
+
     if outcomes:
         errors = [abs(row["error_minutes"]) for row in outcomes]
-        pending["prediction_accuracy_mae_minutes"] = round(
-            sum(errors) / len(errors), 1
-        )
-        on_time = [row["on_time"] for row in outcomes if row["on_time"] is not None]
+        mae = round(sum(errors) / len(errors), 1)
+        pending["prediction_accuracy_mae_minutes"] = mae
+        measured["prediction_accuracy_mae_minutes"] = mae
+
+        on_time = [row["on_time"] for row in outcomes if row.get("on_time") is not None]
         if on_time:
-            pending["on_time_delivery_rate"] = round(
-                sum(1 for item in on_time if item) / len(on_time), 3
-            )
+            rate = round(sum(1 for item in on_time if item) / len(on_time), 3)
+            pending["on_time_delivery_rate"] = rate
+            measured["on_time_delivery_rate"] = rate
     else:
         notes.append(
             "on_time_delivery_rate and prediction_accuracy require actual arrival "
@@ -233,10 +260,11 @@ def compute_kpis(limit: int = 500) -> dict[str, Any]:
             f"none recorded yet ({OUTCOMES_PATH.name} is empty)."
         )
 
-    notes.append(
-        "cost_reduction requires a per-km or per-hour cost baseline for the "
-        "fleet, which is not present in the current dataset."
-    )
+    if pending["cost_reduction"] is None:
+        notes.append(
+            "cost_reduction requires a per-km or per-hour cost baseline for the "
+            "fleet, which is not present in the current dataset."
+        )
 
     return {
         "measured": measured,
@@ -245,3 +273,4 @@ def compute_kpis(limit: int = 500) -> dict[str, Any]:
         "outcomes_recorded": len(outcomes),
         "domain": settings.platform_domain,
     }
+

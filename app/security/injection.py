@@ -202,3 +202,65 @@ def scan_retrieved_content(text: str, *, source: str) -> list[SecurityFinding]:
             )
         )
     return findings
+
+
+_TOOL_ABUSE_PATTERNS: tuple[tuple[str, str, SecuritySeverity], ...] = (
+    (
+        "os_command_execution",
+        r"\b(?:sudo|rm\s+-rf|del\s+/|cmd\.exe|powershell|bash\s+-c|eval\(|exec\()|curl\s+.*\|\s*sh\b",
+        SecuritySeverity.CRITICAL,
+    ),
+    (
+        "sql_cypher_injection",
+        r"\b(?:DROP\s+TABLE|DETACH\s+DELETE|UNION\s+SELECT|INSERT\s+INTO|ALTER\s+TABLE|DELETE\s+FROM)\b",
+        SecuritySeverity.HIGH,
+    ),
+    (
+        "unauthorized_tool_invocation",
+        r"\b(?:invoke_tool|call_function|override_permissions|escalate_privilege)\b",
+        SecuritySeverity.HIGH,
+    ),
+)
+_COMPILED_TOOL_ABUSE = [
+    (name, re.compile(pattern, re.IGNORECASE), severity)
+    for name, pattern, severity in _TOOL_ABUSE_PATTERNS
+]
+
+
+def detect_tool_abuse(text: str) -> list[SecurityFinding]:
+    """Detect attempts to abuse system tools or inject unauthorized operational commands."""
+    findings: list[SecurityFinding] = []
+    if not text:
+        return findings
+    normalised = _normalise(text)
+    for name, pattern, severity in _COMPILED_TOOL_ABUSE:
+        match = pattern.search(normalised)
+        if match:
+            findings.append(
+                SecurityFinding(
+                    check=f"tool_abuse:{name}",
+                    severity=severity,
+                    detail=f"Tool abuse vector '{name}' detected in request.",
+                    span=_excerpt(normalised, match),
+                )
+            )
+    return findings
+
+
+def sanitize_prompt(text: str) -> str:
+    """Sanitize user prompt by removing hidden control characters and instruction overrides."""
+    if not text:
+        return text
+
+    # Remove hidden zero-width and control characters
+    sanitized = _HIDDEN_CHARS.sub("", text)
+    
+    # Strip explicit instruction override prefixes if present
+    override_pattern = re.compile(
+        r"^(?:ignore|disregard|forget|override)\s+(?:all\s+)?(?:previous|prior|above|earlier|all)\s+instructions?[.:,\s]*",
+        re.IGNORECASE,
+    )
+    sanitized = override_pattern.sub("", sanitized).strip()
+
+    return sanitized
+

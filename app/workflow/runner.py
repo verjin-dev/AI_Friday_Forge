@@ -57,6 +57,7 @@ def to_response(state: PlatformState) -> ChatResponse:
         blocked=bool(state.get("blocked")),
         plan=state.get("plan"),
         security=state.get("security"),
+        guardrail=state.get("guardrail"),
         graph_context=state.get("graph_context"),
         search_results=state.get("search_results") or [],
         tool_results=state.get("tool_results") or [],
@@ -69,6 +70,7 @@ def to_response(state: PlatformState) -> ChatResponse:
         metrics=state.get("metrics") or RunMetrics(),
         langsmith_url=state.get("langsmith_url"),
     )
+
 
 
 async def run_workflow(

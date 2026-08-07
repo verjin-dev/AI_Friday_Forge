@@ -174,6 +174,24 @@ DETECTORS: tuple[Detector, ...] = (
         SecuritySeverity.CRITICAL,
         "secret",
     ),
+    Detector(
+        "bank_account",
+        re.compile(
+            r"\b(?:[A-Z]{4}0[A-Z0-9]{6}|(?:account|acct|bank|acc|a/c)[#\s:-]*\d{9,18})\b",
+            re.IGNORECASE,
+        ),
+        SecuritySeverity.HIGH,
+        "pii",
+    ),
+    Detector(
+        "medical_id",
+        re.compile(
+            r"\b(?:[0-9]{2}-[0-9]{4}-[0-9]{4}-[0-9]{4}|(?:medical|health|patient|mrn|hicn|npi|abha)[#\s:]*[A-Z0-9-]{6,14})\b",
+            re.IGNORECASE,
+        ),
+        SecuritySeverity.HIGH,
+        "pii",
+    ),
 )
 
 
@@ -236,3 +254,123 @@ def redact(text: str) -> str:
 
         redacted = detector.pattern.sub(_replace, redacted)
     return redacted
+
+
+def mask_pii(text: str) -> str:
+    """Mask detected PII values with asterisks while keeping structure."""
+    if not text:
+        return text
+    result = text
+    for detector in DETECTORS:
+        def _replace_mask(match: re.Match[str]) -> str:
+            val = match.group(0)
+            if detector.validator:
+                check = _VALIDATORS.get(detector.validator)
+                if check and not check(val):
+                    return val
+            return _mask(val)
+        result = detector.pattern.sub(_replace_mask, result)
+    return result
+
+
+def remove_pii(text: str) -> str:
+    """Remove detected PII values completely."""
+    if not text:
+        return text
+    result = text
+    for detector in DETECTORS:
+        def _replace_remove(match: re.Match[str]) -> str:
+            val = match.group(0)
+            if detector.validator:
+                check = _VALIDATORS.get(detector.validator)
+                if check and not check(val):
+                    return val
+            return "[REMOVED]"
+        result = detector.pattern.sub(_replace_remove, result)
+    return result
+
+
+import base64
+
+def _simple_cipher(text: str, key: str = "guardrail_secret_key_2026") -> str:
+    key_bytes = key.encode("utf-8")
+    text_bytes = text.encode("utf-8")
+    xor_bytes = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(text_bytes)])
+    return base64.urlsafe_b64encode(xor_bytes).decode("utf-8")
+
+def _simple_decipher(token: str, key: str = "guardrail_secret_key_2026") -> str:
+    key_bytes = key.encode("utf-8")
+    try:
+        xor_bytes = base64.urlsafe_b64decode(token.encode("utf-8"))
+        text_bytes = bytes([b ^ key_bytes[i % len(key_bytes)] for i, b in enumerate(xor_bytes)])
+        return text_bytes.decode("utf-8")
+    except Exception:
+        return token
+
+
+def encrypt_pii(text: str, secret_key: str = "guardrail_secret_key_2026") -> str:
+    """Encrypt detected PII into reversible token placeholders."""
+    if not text:
+        return text
+    result = text
+    for detector in DETECTORS:
+        def _replace_encrypt(match: re.Match[str]) -> str:
+            val = match.group(0)
+            if detector.validator:
+                check = _VALIDATORS.get(detector.validator)
+                if check and not check(val):
+                    return val
+            enc = _simple_cipher(val, key=secret_key)
+            return f"[ENCRYPTED:{detector.name.upper()}:{enc}]"
+        result = detector.pattern.sub(_replace_encrypt, result)
+    return result
+
+
+def decrypt_pii(text: str, secret_key: str = "guardrail_secret_key_2026") -> str:
+    """Decrypt encrypted PII tokens back to original values."""
+    if not text:
+        return text
+    pattern = re.compile(r"\[ENCRYPTED:[A-Z_]+:([A-Za-z0-9_-]+)\]")
+    def _replace_decrypt(match: re.Match[str]) -> str:
+        token = match.group(1)
+        return _simple_decipher(token, key=secret_key)
+    return pattern.sub(_replace_decrypt, text)
+
+
+def process_pii_actions(
+    text: str,
+    action: str = "mask",
+    *,
+    trace_id: str = "-",
+    role: str = "analyst",
+) -> tuple[str, list[SecurityFinding]]:
+    """Detect PII and apply the specified action: 'mask', 'remove', 'encrypt', or 'audit'."""
+    findings = detect_personal_data(text)
+    if not findings:
+        return text, []
+
+    # Record audit log
+    from app.security.audit import record_event
+    record_event(
+        "pii_protection_action",
+        trace_id=trace_id,
+        role=role,
+        detail={
+            "action": action,
+            "findings_count": len(findings),
+            "checks": [f.check for f in findings],
+        },
+    )
+
+    action_lower = action.lower()
+    if action_lower == "remove":
+        processed = remove_pii(text)
+    elif action_lower == "encrypt":
+        processed = encrypt_pii(text)
+    elif action_lower == "audit":
+        processed = text  # leave text unchanged, audit recorded
+    else:  # mask or redact (default)
+        processed = redact(text)
+
+    return processed, findings
+

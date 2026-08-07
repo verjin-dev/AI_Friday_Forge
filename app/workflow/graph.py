@@ -7,6 +7,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.agents import (
     ExplanationAgent,
+    GuardrailAgent,
     KnowledgeAgent,
     ObservabilityAgent,
     OptimizationAgent,
@@ -30,6 +31,7 @@ logger = get_logger(__name__)
 
 #: Node identifiers, kept in sync with :class:`AgentName` so the UI timeline and
 #: the graph topology use the same vocabulary.
+GUARDRAIL = AgentName.GUARDRAIL.value
 SECURITY = AgentName.SECURITY.value
 PLANNER = AgentName.PLANNER.value
 KNOWLEDGE = AgentName.KNOWLEDGE.value
@@ -50,6 +52,11 @@ CONTEXT_AGENTS = (KNOWLEDGE, SEARCH, TOOL)
 # ----------------------------------------------------------------------
 # Routing
 # ----------------------------------------------------------------------
+def route_after_guardrail(state: PlatformState) -> str:
+    """A blocked request by Guardrail Agent skips straight to observability."""
+    return OBSERVABILITY if state.get("blocked") else SECURITY
+
+
 def route_after_security(state: PlatformState) -> str:
     """A blocked request skips straight to observability and returns."""
 
@@ -107,13 +114,14 @@ def route_after_reflection(state: PlatformState) -> list[str] | str:
 def build_workflow(*, checkpointer: MemorySaver | None = None):
     """Compile the enterprise workflow described in the platform spec.
 
-    Order note: the security gate runs *before* the planner, so no untrusted
+    Order note: the guardrail and security gates run *before* the planner, so no untrusted
     input reaches an LLM call, and PII is redacted before planning. Tool-level
     permission checks still happen at execution time inside the Tool Agent.
     """
 
     graph = StateGraph(PlatformState)
 
+    graph.add_node(GUARDRAIL, GuardrailAgent())
     graph.add_node(SECURITY, SecurityAgent())
     graph.add_node(PLANNER, PlannerAgent())
     graph.add_node(KNOWLEDGE, KnowledgeAgent())
@@ -127,7 +135,12 @@ def build_workflow(*, checkpointer: MemorySaver | None = None):
     graph.add_node(OBSERVABILITY, ObservabilityAgent())
     graph.add_node(SELF_IMPROVING, SelfImprovingAgent())
 
-    graph.add_edge(START, SECURITY)
+    graph.add_edge(START, GUARDRAIL)
+    graph.add_conditional_edges(
+        GUARDRAIL,
+        route_after_guardrail,
+        {SECURITY: SECURITY, OBSERVABILITY: OBSERVABILITY},
+    )
     graph.add_conditional_edges(
         SECURITY,
         route_after_security,
@@ -178,12 +191,13 @@ def build_workflow(*, checkpointer: MemorySaver | None = None):
     logger.info(
         "Workflow compiled",
         extra={
-            "nodes": 12,
+            "nodes": 13,
             "human_in_the_loop": settings.workflow_human_in_the_loop,
             "max_reflection_loops": settings.workflow_max_reflection_loops,
         },
     )
     return compiled
+
 
 
 @lru_cache(maxsize=1)

@@ -1,0 +1,11 @@
+warehouse_id,name,city,district,type,latitude,longitude,operating_hours,cutoff_time,cold_storage,hazmat_storage,loading_docks,avg_processing_minutes
+WH-TVM-01,Trivandrum Central Logistics Park,Thiruvananthapuram,Thiruvananthapuram,Distribution Center,8.5241,76.9366,06:00-22:00,18:30,true,false,12,25.0
+WH-COK-01,Cochin Port & Inland Logistics Hub,Kochi,Ernakulam,Hub,9.9312,76.2673,00:00-23:59,21:00,true,true,24,20.0
+WH-CCJ-01,Malabar Regional Logistics Center,Kozhikode,Kozhikode,Distribution Center,11.2588,75.7804,06:00-22:00,19:00,true,false,10,30.0
+WH-TCR-01,Thrissur Central Freight Depot,Thrissur,Thrissur,Depot,10.5276,76.2144,07:00-21:00,18:00,false,false,8,35.0
+WH-PGT-01,Palakkad Interstate Gateway Hub,Palakkad,Palakkad,Hub,10.7867,76.6548,00:00-23:59,20:30,false,true,16,22.0
+WH-KLM-01,Quilon Marine & Cold Storage Facility,Kollam,Kollam,Cold Storage Facility,8.8932,76.6141,05:00-21:00,17:30,true,false,8,40.0
+WH-ALP-01,Alleppey Agro Cold Chain Hub,Alappuzha,Alappuzha,Cold Storage Facility,9.4981,76.3388,06:00-20:00,17:00,true,false,6,45.0
+WH-CAN-01,North Malabar Transit Hub,Kannur,Kannur,Depot,11.8745,75.3704,07:00-21:00,18:30,false,false,8,30.0
+WH-KTM-01,Kottayam Rubber & Produce Depot,Kottayam,Kottayam,Depot,9.5916,76.5222,07:00-20:00,17:30,false,false,6,35.0
+WH-MLP-01,Malappuram Commercial Freight Center,Malappuram,Malappuram,Distribution Center,11.0510,76.0711,06:00-21:00,18:00,false,false,8,28.0

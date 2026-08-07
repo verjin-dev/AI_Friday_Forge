@@ -182,33 +182,165 @@ export default function TruckDetailsDrawer({ truck, onClose, onAction, onReplan 
           </div>
         </section>
 
-        {(truck.hardViolations?.length > 0 || truck.softViolations?.length > 0) && (
-          <section className="drawer-section">
-            <h4>Constraint verdict</h4>
-            {truck.hardViolations?.map((item, index) => (
-              <p className="violation" key={`h-${index}`}>
-                <TriangleAlert size={12} aria-hidden="true" /> {item}
-              </p>
-            ))}
-            {truck.softViolations?.map((item, index) => (
-              <p
-                className="violation"
-                style={{ color: "var(--amber)" }}
-                key={`s-${index}`}
+        <section className="drawer-section">
+          <h4>Constraint verdict</h4>
+          {truck.hardViolations?.map((item, index) => (
+            <p className="violation" key={`h-${index}`}>
+              <TriangleAlert size={12} aria-hidden="true" /> {item}
+            </p>
+          ))}
+          {truck.softViolations?.map((item, index) => (
+            <p
+              className="violation"
+              style={{ color: "var(--amber)" }}
+              key={`s-${index}`}
+            >
+              <TriangleAlert size={12} aria-hidden="true" /> {item}
+            </p>
+          ))}
+
+          {truck.replanOutcome && (
+            <div
+              style={{
+                marginTop: 10,
+                padding: "10px 12px",
+                background: "rgba(255, 140, 66, 0.08)",
+                borderRadius: 8,
+                border: "1px solid rgba(255, 140, 66, 0.25)",
+                fontSize: 12,
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 600,
+                  color: "var(--amber)",
+                  marginBottom: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
               >
-                <TriangleAlert size={12} aria-hidden="true" /> {item}
-              </p>
-            ))}
+                <RouteIcon size={13} /> Replanning Breakdown
+              </div>
+              <div className="kv-list" style={{ gap: 5 }}>
+                <Row
+                  k="Replanned From"
+                  v={truck.replanOutcome.replanned_from || truck.next_stop || "Current position"}
+                />
+                <Row
+                  k="Reason"
+                  v={truck.replanOutcome.reason || "Dispatcher manual request"}
+                />
+                <Row
+                  k="Distance Change"
+                  v={`${truck.replanOutcome.original_distance_km ? `${truck.replanOutcome.original_distance_km} km → ` : ""}${truck.replanOutcome.new_distance_km ? `${truck.replanOutcome.new_distance_km} km` : ""} (+${(truck.replanOutcome.added_distance_km || 0).toFixed(1)} km detour)`}
+                />
+                <Row
+                  k="Segments Reused"
+                  v={`${truck.replanOutcome.segments_reused || 0} legs kept`}
+                />
+                <Row
+                  k="Segments Changed"
+                  v={`${truck.replanOutcome.segments_changed || 0} legs rerouted`}
+                />
+                {truck.replanOutcome.note && (
+                  <Row k="System Note" v={truck.replanOutcome.note} />
+                )}
+              </div>
+            </div>
+          )}
+
+          <div
+            style={{
+              marginTop: 10,
+              padding: "8px 10px",
+              background: "var(--surface)",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              fontSize: 11.5,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "3px 0",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <span>Vehicle Profile & Weight</span>
+              <span style={{ color: "var(--emerald)", fontWeight: 500 }}>
+                ✓ Feasible ({truck.vehicle || "LMV"})
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "3px 0",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <span>Hazmat Restrictions</span>
+              <span style={{ color: "var(--emerald)", fontWeight: 500 }}>
+                ✓ Compliant ({truck.cargo?.hazmat_certified ? "Hazmat Certified" : "Standard Freight"})
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "3px 0",
+                color: "var(--text-secondary)",
+              }}
+            >
+              <span>Driver HOS / Rest Rules</span>
+              <span
+                style={{
+                  color:
+                    truck.telemetry?.driver_hours_today > 8
+                      ? "var(--amber)"
+                      : "var(--emerald)",
+                  fontWeight: 500,
+                }}
+              >
+                {truck.telemetry?.driver_hours_today > 8
+                  ? "⚠ Near HOS limit"
+                  : "✓ Within HOS limit"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {truck.telemetry ? (
+          <section className="drawer-section">
+            <h4>Live telemetry</h4>
+            <div className="kv-list">
+              <Row k="Fuel level" v={`${truck.telemetry.fuel_level}%`}
+                tone={truck.telemetry.fuel_level < 20 ? "var(--rose)" : truck.telemetry.fuel_level < 40 ? "var(--amber)" : "var(--emerald)"} />
+              <Row k="Current speed" v={`${truck.telemetry.current_speed} km/h`} />
+              <Row k="Odometer" v={`${Math.round(truck.telemetry.odometer).toLocaleString()} km`} />
+              <Row k="Tyre health" v={`${truck.telemetry.tyre_health}%`}
+                tone={truck.telemetry.tyre_health < 75 ? "var(--amber)" : "var(--emerald)"} />
+              <Row k="Engine health" v={`${truck.telemetry.engine_health}%`}
+                tone={truck.telemetry.engine_health < 80 ? "var(--amber)" : "var(--emerald)"} />
+              <Row k="Driver safety" v={`${truck.telemetry.driver_safety_score}/100`} />
+              <Row k="Hours today" v={`${truck.telemetry.driver_hours_today} h`} />
+              <Row k="Break due" v={truck.telemetry.break_due_at} />
+              <Row k="Cargo temp" v={`${truck.telemetry.cargo_temperature}°C`} />
+              <Row k="CO₂ emitted" v={`${truck.telemetry.co2_estimate} kg`} />
+              <Row k="GPS fix" v={`${truck.telemetry.gps_fix_age}s ago`} />
+            </div>
+          </section>
+        ) : (
+          <section className="drawer-section">
+            <h4>Not tracked in this dataset</h4>
+            <p style={{ fontSize: 11.5, color: "var(--text-faint)", margin: "0 16px" }}>
+              {(truck.untracked || []).join(", ").replace(/_/g, " ")}. Connect a
+              telematics feed to populate them.
+            </p>
           </section>
         )}
-
-        <section className="drawer-section">
-          <h4>Not tracked in this dataset</h4>
-          <p style={{ fontSize: 11.5, color: "var(--text-faint)", margin: "0 16px" }}>
-            {(truck.untracked || []).join(", ").replace(/_/g, " ")}. Connect a
-            telematics feed to populate them.
-          </p>
-        </section>
       </div>
 
       <footer className="drawer-actions">

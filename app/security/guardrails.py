@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.models import SecurityFinding, SecuritySeverity
 from app.security.pii import detect_personal_data, redact
 from app.security.rbac import resolve_role
+from app.security.toxicity import detect_toxicity
 
 
 _LEAK_PATTERNS: tuple[tuple[str, str, SecuritySeverity], ...] = (
@@ -16,7 +17,7 @@ _LEAK_PATTERNS: tuple[tuple[str, str, SecuritySeverity], ...] = (
     ),
     (
         "system_prompt_echo",
-        r"\byou are the (?:planner|security|knowledge|reasoning|validation) agent\b",
+        r"\byou are the (?:planner|security|guardrail|knowledge|reasoning|validation) agent\b",
         SecuritySeverity.HIGH,
     ),
     (
@@ -53,6 +54,11 @@ def apply_output_guardrails(
 
     safe = answer
 
+    # 1. Toxicity check on output
+    toxic_findings = detect_toxicity(safe)
+    findings.extend(toxic_findings)
+
+    # 2. Data leakage prevention
     for name, pattern, severity in _COMPILED_LEAKS:
         if pattern.search(safe):
             findings.append(
@@ -64,6 +70,7 @@ def apply_output_guardrails(
             )
             safe = pattern.sub(f"[REDACTED:{name.upper()}]", safe)
 
+    # 3. PII protection
     resolved = resolve_role(role)
     personal = detect_personal_data(safe)
     if personal:
@@ -96,3 +103,4 @@ def apply_output_guardrails(
             )
 
     return safe, findings
+

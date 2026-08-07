@@ -1,0 +1,41 @@
+driver_id,name,licence_held,licence_classes,phone,years_experience,max_daily_driving_hours,min_break_minutes,safety_score,home_base,status,vehicle_assigned
+DRV-101,Arun Kumar,HMV,HMV;LMV,9847012345,12,9.0,45.0,92,Thiruvananthapuram,Active,VEH-001
+DRV-102,Rajesh Nair,HMV,HMV;LMV,9447123456,15,9.0,45.0,88,Kochi,Active,VEH-002
+DRV-103,Suresh Pillai,TRANS,TRANS;HMV;LMV,8086123456,18,9.0,45.0,95,Kozhikode,Active,VEH-003
+DRV-104,Gokul Das,LMV,LMV,7012345678,4,9.0,45.0,76,Thrissur,Active,VEH-004
+DRV-105,Vishnu Prasad,HMV,HMV;LMV,9744123456,9,9.0,45.0,84,Kollam,Active,VEH-005
+DRV-106,Mohammed Shafi,TRANS,TRANS;HMV;LMV,9946123456,22,9.0,45.0,97,Palakkad,Active,VEH-006
+DRV-107,Faisal Khan,HMV,HMV;LMV,8547123456,11,9.0,45.0,91,Alappuzha,Active,VEH-007
+DRV-108,Anoop Varghese,TRANS,TRANS;HMV;LMV,7558123456,14,9.0,45.0,89,Kannur,Active,VEH-008
+DRV-109,Mathew Joseph,LMV,LMV;MCWG,9633123456,5,9.0,45.0,79,Kottayam,Active,VEH-009
+DRV-110,Thomas Philip,HMV,HMV;LMV,9400123456,16,9.0,45.0,93,Malappuram,Active,VEH-010
+DRV-111,Deepu Chandran,TRANS,TRANS;HMV;LMV,8129123456,20,9.0,45.0,96,Thiruvananthapuram,Active,VEH-011
+DRV-112,Renjith Pillai,HMV,HMV;LMV,9895123456,8,9.0,45.0,82,Kochi,Active,VEH-012
+DRV-113,Subhash Chandran,HMV,HMV;LMV,9746123456,13,9.0,45.0,90,Kozhikode,Active,VEH-013
+DRV-114,Biju Kumar,TRANS,TRANS;HMV;LMV,8281123456,17,9.0,45.0,94,Thrissur,Active,VEH-014
+DRV-115,Jithesh K.,LMV,LMV,7907123456,3,9.0,45.0,71,Palakkad,Active,VEH-015
+DRV-116,Nikhil Menon,HMV,HMV;LMV,9567123456,10,9.0,45.0,87,Kollam,Active,VEH-016
+DRV-117,Santhosh Varghese,TRANS,TRANS;HMV;LMV,9496123456,24,9.0,45.0,98,Alappuzha,Active,VEH-017
+DRV-118,Sujith Kumar,HMV,HMV;LMV,8606123456,7,9.0,45.0,83,Kannur,Active,VEH-018
+DRV-119,Vijayan Pillai,TRANS,TRANS;HMV;LMV,7025123456,21,9.0,45.0,92,Kottayam,Active,VEH-019
+DRV-120,Harikrishnan M.,LMV,LMV,9846123456,6,9.0,45.0,78,Malappuram,Active,VEH-020
+DRV-121,Ajith Kumar,HMV,HMV;LMV,9446123456,11,9.0,45.0,86,Thiruvananthapuram,Active,VEH-021
+DRV-122,Vineeth Nambiar,TRANS,TRANS;HMV;LMV,8075123456,19,9.0,45.0,95,Kochi,Active,VEH-022
+DRV-123,Praveen Raj,HMV,HMV;LMV,7356123456,14,9.0,45.0,89,Kozhikode,Active,VEH-023
+DRV-124,Sreejith Panicker,TRANS,TRANS;HMV;LMV,9745123456,16,9.0,45.0,91,Thrissur,Active,VEH-024
+DRV-125,Aneesh Kurup,LMV,LMV,9961123456,2,9.0,45.0,68,Palakkad,Active,VEH-025
+DRV-126,Vinod Kumar,HMV,HMV;LMV,8590123456,15,9.0,45.0,88,Kollam,Active,VEH-026
+DRV-127,Sreehari Nair,TRANS,TRANS;HMV;LMV,7594123456,23,9.0,45.0,97,Alappuzha,Active,VEH-027
+DRV-128,Abhilash S.,HMV,HMV;LMV,9656123456,9,9.0,45.0,85,Kannur,Active,VEH-028
+DRV-129,Sunil Dutt,TRANS,TRANS;HMV;LMV,9400987654,18,9.0,45.0,94,Kottayam,Active,VEH-029
+DRV-130,Vipin Lal,LMV,LMV,8137123456,5,9.0,45.0,74,Malappuram,Active,VEH-030
+DRV-131,Rahul Varma,HMV,HMV;LMV,9895987654,13,9.0,45.0,90,Thiruvananthapuram,Active,
+DRV-132,Akhil Raj,TRANS,TRANS;HMV;LMV,9744987654,17,9.0,45.0,92,Kochi,Active,
+DRV-133,Sarath Chandran,HMV,HMV;LMV,8086987654,10,9.0,45.0,86,Kozhikode,Active,
+DRV-134,Anand Hu,TRANS,TRANS;HMV;LMV,7012987654,15,9.0,45.0,89,Thrissur,Active,
+DRV-135,Shiju Varghese,HMV,HMV;LMV,9946987654,12,9.0,45.0,87,Palakkad,Active,
+DRV-136,Mahesh Pillai,TRANS,TRANS;HMV;LMV,8547987654,25,9.0,45.0,96,Kollam,Active,
+DRV-137,Kiran Das,LMV,LMV,7558987654,4,9.0,45.0,72,Alappuzha,On Leave,
+DRV-138,Eldho Paul,MCWG,MCWG,9633987654,3,9.0,45.0,65,Kannur,On Leave,
+DRV-139,Pradeep Kumar,LMV,LMV;MCWG,9447987654,7,9.0,45.0,80,Kottayam,Training,
+DRV-140,Libin George,MCWG,MCWG,8129987654,2,9.0,45.0,70,Malappuram,Training,

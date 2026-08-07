@@ -1,0 +1,7 @@
+product_type,weight_travel_time,weight_weather,weight_congestion,weight_risk,weight_historical_delay,weight_hub_congestion,weight_road_quality,weight_distance,weight_priority,weight_money,weight_carbon,min_temp_c,max_temp_c,requires_cold_chain,requires_hazmat_vehicle,fragility_level,avg_value_per_kg
+medicine,10.0,5.0,8.0,8.0,5.0,4.0,3.0,2.0,2.0,1.0,1.0,2.0,8.0,true,false,high,2500.0
+perishable_goods,9.0,8.0,7.0,4.0,4.0,5.0,3.0,3.0,2.0,2.0,1.0,0.0,4.0,true,false,medium,180.0
+luxury_goods,7.0,3.0,5.0,10.0,3.0,4.0,3.0,3.0,3.0,4.0,1.0,15.0,25.0,false,false,high,15000.0
+hazmat,5.0,6.0,6.0,10.0,3.0,3.0,4.0,4.0,3.0,3.0,1.0,-10.0,40.0,false,true,critical,850.0
+furniture,2.0,3.0,2.0,2.0,2.0,2.0,6.0,7.0,1.0,9.0,1.0,10.0,35.0,false,false,low,350.0
+general_cargo,5.0,3.0,4.0,5.0,3.0,3.0,3.0,5.0,2.0,5.0,1.0,5.0,40.0,false,false,low,120.0

@@ -1071,7 +1071,7 @@ tbody tr:hover {
   right: 0;
   bottom: 0;
   width: min(392px, 92%);
-  z-index: 20;
+  z-index: 90;
   display: flex;
   flex-direction: column;
   background: var(--surface-strong);

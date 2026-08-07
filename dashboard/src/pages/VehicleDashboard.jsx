@@ -237,19 +237,42 @@ export default function VehicleDashboard({
             </div>
             <div className="kv-list">
               <KV k="Assigned profile" v={truck?.vehicle || "—"} />
-              {(truck?.untracked || []).slice(0, 5).map((field) => (
-                <KV
-                  key={field}
-                  k={field.replace(/_/g, " ")}
-                  v="not tracked"
-                  muted
-                />
-              ))}
+              {truck?.telemetry ? (
+                <>
+                  <KV k="Fuel level" v={`${truck.telemetry.fuel_level}%`} />
+                  <KV k="Current speed" v={`${truck.telemetry.current_speed} km/h`} />
+                  <KV k="Odometer" v={`${Math.round(truck.telemetry.odometer).toLocaleString()} km`} />
+                  <KV k="Tyre health" v={`${truck.telemetry.tyre_health}%`} />
+                  <KV k="Engine health" v={`${truck.telemetry.engine_health}%`} />
+                  <KV k="Driver safety" v={`${truck.telemetry.driver_safety_score}/100`} />
+                  <KV k="Hours today" v={`${truck.telemetry.driver_hours_today} h`} />
+                  <KV k="Break due" v={truck.telemetry.break_due_at} />
+                  <KV k="Cargo temp" v={`${truck.telemetry.cargo_temperature}°C`} />
+                  <KV k="CO₂ emitted" v={`${truck.telemetry.co2_estimate} kg`} />
+                  <KV k="GPS fix" v={`${truck.telemetry.gps_fix_age}s ago`} />
+                </>
+              ) : (
+                (truck?.untracked || []).slice(0, 5).map((field) => (
+                  <KV
+                    key={field}
+                    k={field.replace(/_/g, " ")}
+                    v="not tracked"
+                    muted
+                  />
+                ))
+              )}
             </div>
-            <p className="provenance">
-              These come from vehicle telemetry, which this dataset does not
-              include. Connect a telematics feed to populate them.
-            </p>
+            {truck?.telemetry ? (
+              <p className="provenance">
+                Telemetry values are derived from route parameters. Connect a
+                real telematics feed for live readings.
+              </p>
+            ) : (
+              <p className="provenance">
+                These come from vehicle telemetry, which this dataset does not
+                include. Connect a telematics feed to populate them.
+              </p>
+            )}
           </section>
         </div>
 

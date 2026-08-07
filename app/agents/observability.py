@@ -7,6 +7,7 @@ from app.agents.base import AgentOutcome, BaseAgent
 from app.core.config import settings
 from app.core.models import AgentName, RunMetrics
 from app.core.state import PlatformState
+from app.observability.tracing import capture_run_to_langsmith
 
 
 class ObservabilityAgent(BaseAgent):
@@ -38,6 +39,8 @@ class ObservabilityAgent(BaseAgent):
             reflection_loops=state.get("reflection_loops", 0),
         )
 
+        capture_run_to_langsmith(dict(state))
+
         langsmith_url = None
         if settings.langsmith_tracing and settings.langsmith_api_key:
             langsmith_url = (
@@ -45,6 +48,7 @@ class ObservabilityAgent(BaseAgent):
                 f"{settings.langsmith_project}?searchModel="
                 f"%7B%22filter%22%3A%22{state.get('trace_id', '')}%22%7D"
             )
+
 
         record = {
             "ts": datetime.now(timezone.utc).isoformat(),
