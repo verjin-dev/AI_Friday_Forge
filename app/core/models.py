@@ -271,6 +271,9 @@ class OptimizationResult(BaseModel):
     constraint_reports: list[dict[str, Any]] = Field(default_factory=list)
     all_infeasible: bool = False
     method: str = "constraint_filtered_ranking"
+    engine_report: dict[str, Any] = Field(default_factory=dict)
+    algorithm_used: str = ""
+    candidates_evaluated: int = 0
 
 
 # ----------------------------------------------------------------------

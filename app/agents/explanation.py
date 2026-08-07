@@ -27,6 +27,10 @@ soften it into a recommendation.
 4. Disclose material gaps and low confidence honestly, near the top, not buried.
 5. Attribute key facts to their source inline — the entity name, document or tool.
 6. If validation raised unresolved issues, include a short "Caveats" section.
+7. When routing engine data is available, reference the specific algorithm used \
+(Dijkstra, A*, or Yen's K-Shortest Path), the number of candidates evaluated, \
+the overlay modifications applied, and the engine's confidence score. Never \
+generate a generic explanation — every statement must cite specific evidence.
 
 Structure, adapted to the question:
 - **Answer** — the direct response in 1-3 sentences.
@@ -110,6 +114,30 @@ class ExplanationAgent(BaseAgent):
                     f"DISQUALIFIED: {option.label} — "
                     + "; ".join(option.hard_violations)
                 )
+
+        # === Routing engine telemetry ===
+        if optimization and optimization.engine_report:
+            er = optimization.engine_report
+            context += [
+                "",
+                "=== ROUTING ENGINE ===",
+                f"Algorithm: {er.get('algorithm', 'unknown')} "
+                f"(reason: {er.get('algorithm_reason', 'auto-selected')})",
+                f"Graph: {er.get('graph_nodes', '?')} nodes",
+                f"Candidates: {er.get('candidates_found', 0)} found "
+                f"of {er.get('candidates_requested', 0)} requested "
+                f"in {er.get('duration_ms', 0):.0f} ms",
+                f"Nodes expanded: {er.get('nodes_expanded', 0)}",
+            ]
+            overlay = er.get("overlay_applied", [])
+            if overlay:
+                context.append(
+                    f"Incident overlay: {len(overlay)} modification(s) — "
+                    + "; ".join(str(m)[:100] for m in overlay[:4])
+                )
+            notes = er.get("notes", [])
+            if notes:
+                context.append("Engine notes: " + "; ".join(notes[:3]))
 
         if validation:
             context += [
@@ -244,4 +272,16 @@ def _decision_trace(state: PlatformState) -> list[str]:
             f"{entry.agent.value}: {entry.status.value} "
             f"({entry.latency_ms:.0f} ms) — {entry.summary}"
         )
+    optimization = state.get("optimization")
+    if optimization and optimization.engine_report:
+        er = optimization.engine_report
+        trace.append(
+            f"Routing engine: {er.get('algorithm', '?')} selected "
+            f"({er.get('algorithm_reason', 'auto')}), "
+            f"{er.get('candidates_found', 0)}/{er.get('candidates_requested', 0)} "
+            f"candidates in {er.get('duration_ms', 0):.0f} ms"
+        )
+        overlay_count = len(er.get('overlay_applied', []))
+        if overlay_count:
+            trace.append(f"Incident overlay: {overlay_count} modification(s) active")
     return trace

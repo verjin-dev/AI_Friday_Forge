@@ -68,6 +68,66 @@ class Settings(BaseSettings):
     blocking_severities: list[str] = Field(default_factory=lambda: ["critical"])
 
     # ------------------------------------------------------------------
+    # Routing engine
+    # ------------------------------------------------------------------
+    #: "auto" picks by graph size; force with dijkstra | astar | yen.
+    routing_algorithm: str = "auto"
+    #: Node count at or above which A* is preferred over Dijkstra.
+    astar_node_threshold: int = 250
+    route_candidate_count: int = 4
+    #: Algorithm used for mid-journey segment replanning — A* is the right
+    #: default because replanning is latency-sensitive.
+    replan_algorithm: str = "astar"
+    replan_detour_warn_km: float = 25.0
+
+    # --- feature flags ---
+    #: When true, /api/routes/plan takes its candidates from the routing engine
+    #: (Dijkstra / A* / Yen with enterprise cost) rather than the legacy
+    #: enumeration. Off returns the previous behaviour, for A/B comparison.
+    routing_engine_drives_plan: bool = True
+    enable_incident_overlay: bool = True
+    enable_live_traffic_enrichment: bool = True
+    enable_segment_replanning: bool = True
+    enable_route_monitoring: bool = False
+
+    # ------------------------------------------------------------------
+    # Route monitoring
+    # ------------------------------------------------------------------
+    monitor_poll_interval_seconds: int = 120
+    monitor_replan_threshold_minutes: float = 15.0
+    monitor_max_active_routes: int = 50
+    monitor_weather_check: bool = True
+
+    # ------------------------------------------------------------------
+    # Overlay persistence
+    # ------------------------------------------------------------------
+    overlay_persist_to_graph: bool = False
+    overlay_default_ttl_hours: float = 24.0
+
+    # --- cost model weights (all default to 1.0 = neutral) ---
+    weight_distance: float = 1.0
+    weight_travel_time: float = 1.0
+    weight_road_quality: float = 1.0
+    weight_historical_delay: float = 1.0
+    weight_risk: float = 1.0
+    weight_money: float = 1.0
+    weight_priority: float = 1.0
+    weight_criticality: float = 1.0
+
+    # --- cost model constants ---
+    #: Effective minutes added per km, beyond pure travel time: covers wear,
+    #: driver hours and distance-proportional cost.
+    minutes_per_km_distance_weight: float = 0.15
+    #: Minutes of expected loss at incident_probability = 1.0.
+    incident_risk_minutes: float = 45.0
+    weather_risk_minutes: float = 20.0
+    #: How strongly to prefer strategic corridors over local roads.
+    priority_penalty_factor: float = 0.2
+    #: Fleet time valuation, used to convert money into effective minutes.
+    cost_per_minute: float = 8.0
+    fuel_cost_per_km: float = 7.5
+
+    # ------------------------------------------------------------------
     # Search
     # ------------------------------------------------------------------
     search_api_provider: Literal["duckduckgo", "none"] = "duckduckgo"

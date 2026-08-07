@@ -73,6 +73,25 @@ class Leg(BaseModel):
     kind: str = "primary"  # "primary" (CONNECTED_TO) or "alternate" (ALTERNATE_ROUTE)
     via: str | None = None
 
+    # --- enterprise edge metadata (Phase 2) ---
+    # All optional. Anything absent is derived from the road class by
+    # app.routing.cost.EdgeAttributes, so the model works on today's data and
+    # sharpens as the graph is enriched.
+    road_class: str | None = None
+    average_speed_kmh: float | None = None
+    road_condition: float | None = None          # 0..1
+    road_priority: float | None = None           # 0..1
+    historical_delay_min: float | None = None
+    incident_probability: float | None = None    # 0..1
+    weather_risk: float | None = None            # 0..1
+    toll_cost: float | None = None
+    fuel_cost_per_km: float | None = None
+    weight_limit_kg: float | None = None
+    height_limit_m: float | None = None
+    axle_limit: int | None = None
+    hazmat_allowed: bool | None = None
+    cold_chain_supported: bool | None = None
+
     def describe(self) -> str:
         if self.kind == "alternate":
             return (
@@ -359,6 +378,30 @@ class RoadNetwork:
         path.advisory_incidents = advisory
         return path
 
+    def build_path(self, stops: list[str]) -> RoutePath | None:
+        """Materialise a RoutePath from a stop sequence produced by the engine.
+
+        Returns None if any leg is missing, which keeps a route that the graph
+        cannot substantiate out of the response entirely.
+        """
+
+        if len(stops) < 2:
+            return None
+
+        ok, legs, _missing = self.verify_legs(stops)
+        if not ok:
+            return None
+
+        path = RoutePath(
+            stops=list(stops),
+            legs=legs,
+            total_distance_km=round(sum(leg.distance_km for leg in legs), 2),
+            uses_alternate=any(leg.kind == "alternate" for leg in legs),
+        )
+        self.annotate(path)
+        path.label = self._label_for(path)
+        return path
+
     def verify_legs(self, stops: list[str]) -> tuple[bool, list[Leg], list[str]]:
         """Confirm a proposed stop sequence corresponds to real graph edges."""
 
@@ -462,7 +505,13 @@ async def load_network() -> RoadNetwork:
     road_rows = await client.try_run(
         "MATCH (a:Location)-[r:CONNECTED_TO]->(b:Location) "
         "RETURN a.name AS source, b.name AS target, "
-        "r.distance_km AS distance_km, r.road_name AS road_name"
+        "r.distance_km AS distance_km, r.road_name AS road_name, "
+        "r.road_class AS road_class, r.average_speed_kmh AS average_speed_kmh, "
+        "r.road_condition AS road_condition, r.road_priority AS road_priority, "
+        "r.historical_delay_min AS historical_delay_min, r.incident_probability AS incident_probability, "
+        "r.weather_risk AS weather_risk, r.toll_cost AS toll_cost, r.fuel_cost_per_km AS fuel_cost_per_km, "
+        "r.weight_limit_kg AS weight_limit_kg, r.height_limit_m AS height_limit_m, "
+        "r.hazmat_allowed AS hazmat_allowed, r.cold_chain_supported AS cold_chain_supported"
     )
     for row in road_rows:
         source, target = row.get("source"), row.get("target")
@@ -477,6 +526,19 @@ async def load_network() -> RoadNetwork:
             to_location=target,
             distance_km=distance,
             road_name=row.get("road_name") or "",
+            road_class=row.get("road_class"),
+            average_speed_kmh=row.get("average_speed_kmh"),
+            road_condition=row.get("road_condition"),
+            road_priority=row.get("road_priority"),
+            historical_delay_min=row.get("historical_delay_min"),
+            incident_probability=row.get("incident_probability"),
+            weather_risk=row.get("weather_risk"),
+            toll_cost=row.get("toll_cost"),
+            fuel_cost_per_km=row.get("fuel_cost_per_km"),
+            weight_limit_kg=row.get("weight_limit_kg"),
+            height_limit_m=row.get("height_limit_m"),
+            hazmat_allowed=row.get("hazmat_allowed"),
+            cold_chain_supported=row.get("cold_chain_supported"),
         )
         network.adjacency.setdefault(source, []).append(leg)
         # Roads are traversable both ways unless the graph says otherwise.
@@ -486,6 +548,19 @@ async def load_network() -> RoadNetwork:
                 to_location=source,
                 distance_km=distance,
                 road_name=leg.road_name,
+                road_class=leg.road_class,
+                average_speed_kmh=leg.average_speed_kmh,
+                road_condition=leg.road_condition,
+                road_priority=leg.road_priority,
+                historical_delay_min=leg.historical_delay_min,
+                incident_probability=leg.incident_probability,
+                weather_risk=leg.weather_risk,
+                toll_cost=leg.toll_cost,
+                fuel_cost_per_km=leg.fuel_cost_per_km,
+                weight_limit_kg=leg.weight_limit_kg,
+                height_limit_m=leg.height_limit_m,
+                hazmat_allowed=leg.hazmat_allowed,
+                cold_chain_supported=leg.cold_chain_supported,
             )
         )
 

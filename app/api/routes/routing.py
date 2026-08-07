@@ -16,6 +16,13 @@ from app.domain.geo import resolve_all
 from app.domain.network import load_network
 from app.kg.client import get_kg_client
 from app.observability.kpis import record_decision
+from app.routing import (
+    ReplanRequest,
+    VehicleContext,
+    get_replanner,
+    get_routing_engine,
+    get_strategy_factory,
+)
 from app.mcp.builtin import weather_lookup
 
 
@@ -129,6 +136,9 @@ async def plan(
     ),
     payload_weight_kg: float | None = Query(default=None),
     payload_volume_m3: float | None = Query(default=None),
+    algorithm: str | None = Query(
+        default=None, description="auto | dijkstra | astar | yen"
+    ),
 ) -> dict[str, Any]:
     """Plan routes with hard-constraint verdicts and delay predictions.
 
@@ -180,6 +190,31 @@ async def plan(
     coordinates = await resolve_all(
         sorted(network_model.locations), network_model.locations
     )
+
+    # Phases 1–3: the deterministic engine generates the candidates. Google is
+    # not consulted until after this point, and only to enrich what the graph
+    # has already chosen — it never selects the corridor.
+    engine_report = None
+    if settings.routing_engine_drives_plan:
+        engine_candidates, engine_report = get_routing_engine().plan(
+            network_model,
+            resolved_origin,
+            resolved_destination,
+            vehicle=VehicleContext.from_profile(vehicle),
+            coordinates=coordinates,
+            k=max_routes,
+            algorithm=algorithm,
+        )
+        rebuilt = [
+            path
+            for path in (
+                network_model.build_path(candidate.stops)
+                for candidate in engine_candidates
+            )
+            if path is not None
+        ]
+        if rebuilt:
+            paths = rebuilt
 
     # Live traffic per route, in parallel; failures degrade to the graph baseline.
     predictions = await predict_with_live_traffic(
@@ -252,6 +287,7 @@ async def plan(
         "departure": departure_at.isoformat() if departure_at else None,
         "profile": vehicle.profile_id if vehicle else None,
         "vehicle": vehicle.label() if vehicle else None,
+        "planning": engine_report.as_dict() if engine_report else None,
         "route_count": len(results),
         "feasible_count": len(feasible),
         "all_infeasible": bool(results) and not feasible,
@@ -341,3 +377,146 @@ async def scenario(request: ScenarioRequest) -> dict[str, Any]:
 async def locations() -> list[str]:
     network_model = await load_network()
     return sorted(network_model.locations)
+
+
+# ----------------------------------------------------------------------
+# Deterministic routing engine (graph algorithms, before any Google call)
+# ----------------------------------------------------------------------
+@router.get("/candidates")
+async def candidates(
+    origin: str = Query(description="Start location name."),
+    destination: str = Query(description="End location name."),
+    k: int = Query(default=4, ge=1, le=8, description="How many candidates."),
+    algorithm: str | None = Query(
+        default=None, description="auto | dijkstra | astar | yen"
+    ),
+    profile: str | None = Query(default=None, description="Vehicle profile id."),
+    criticality: float = Query(default=0.5, ge=0.0, le=1.0),
+) -> dict[str, Any]:
+    """Top-K enterprise-scored candidates straight from the graph.
+
+    This is the deterministic half of the pipeline in isolation — no Google,
+    no LLM. Useful for verifying that routing is reproducible and for
+    debugging why a particular corridor was or was not offered.
+    """
+
+    network_model = await load_network()
+    if not network_model.locations:
+        raise HTTPException(status_code=503, detail="Road network is empty.")
+
+    resolved_origin = network_model.resolve(origin)
+    resolved_destination = network_model.resolve(destination)
+    if not resolved_origin or not resolved_destination:
+        unknown = origin if not resolved_origin else destination
+        raise HTTPException(
+            status_code=404, detail=f"Location '{unknown}' is not in the road network."
+        )
+
+    vehicle = get_profile(profile)
+    if profile and vehicle is None:
+        raise HTTPException(status_code=404, detail=f"Unknown profile '{profile}'.")
+
+    coordinates = await resolve_all(
+        sorted(network_model.locations), network_model.locations
+    )
+
+    routes, report = get_routing_engine().plan(
+        network_model,
+        resolved_origin,
+        resolved_destination,
+        vehicle=VehicleContext.from_profile(vehicle, criticality),
+        coordinates=coordinates,
+        k=k,
+        algorithm=algorithm,
+    )
+
+    return {
+        "origin": resolved_origin,
+        "destination": resolved_destination,
+        "profile": vehicle.profile_id if vehicle else None,
+        "planning": report.as_dict(),
+        "candidates": [
+            {**candidate.model_dump(mode="json"), "label": candidate.label}
+            for candidate in routes
+        ],
+    }
+
+
+@router.post("/replan")
+async def replan(
+    request: ReplanRequest,
+    profile: str | None = Query(default=None),
+    algorithm: str | None = Query(default=None),
+) -> dict[str, Any]:
+    """Segment-level replanning — keeps the driven prefix, replans the rest.
+
+    Give it the route being driven plus what changed; it returns the smallest
+    diversion that resolves the disruption, rather than rewriting the journey.
+    """
+
+    if not settings.enable_segment_replanning:
+        raise HTTPException(
+            status_code=503, detail="Segment replanning is disabled by feature flag."
+        )
+
+    network_model = await load_network()
+    if not network_model.locations:
+        raise HTTPException(status_code=503, detail="Road network is empty.")
+
+    vehicle = get_profile(profile)
+    coordinates = await resolve_all(
+        sorted(network_model.locations), network_model.locations
+    )
+
+    outcome = get_replanner().replan(
+        network_model,
+        request,
+        vehicle=VehicleContext.from_profile(vehicle),
+        coordinates=coordinates,
+        algorithm=algorithm,
+    )
+    payload = outcome.model_dump(mode="json")
+    if outcome.route:
+        payload["route"]["label"] = outcome.route.label
+    return payload
+
+
+@router.get("/algorithms")
+async def algorithms() -> dict[str, Any]:
+    """What the engine can do and how it chooses — for the UI and for auditors."""
+
+    network_model = await load_network()
+    node_count = len(network_model.locations)
+    choice = get_strategy_factory().create(
+        node_count=node_count, want_alternatives=True, has_coordinates=True
+    )
+    return {
+        "graph_nodes": node_count,
+        "configured": settings.routing_algorithm,
+        "astar_node_threshold": settings.astar_node_threshold,
+        "candidate_count": settings.route_candidate_count,
+        "would_select": {"algorithm": choice.name, "reason": choice.reason},
+        "available": [
+            {
+                "name": "dijkstra",
+                "use": "exact shortest path; the reference result",
+                "selected_when": "small graphs, or when no coordinates exist",
+            },
+            {
+                "name": "astar",
+                "use": "same optimum as Dijkstra, fewer expansions",
+                "selected_when": f"graphs of {settings.astar_node_threshold}+ nodes with coordinates",
+            },
+            {
+                "name": "yen",
+                "use": "K loopless shortest paths for genuine alternatives",
+                "selected_when": "more than one candidate is requested",
+            },
+        ],
+        "feature_flags": {
+            "incident_overlay": settings.enable_incident_overlay,
+            "live_traffic_enrichment": settings.enable_live_traffic_enrichment,
+            "segment_replanning": settings.enable_segment_replanning,
+            "route_monitoring": settings.enable_route_monitoring,
+        },
+    }

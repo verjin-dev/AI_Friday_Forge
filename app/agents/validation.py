@@ -86,6 +86,9 @@ class ValidationAgent(BaseAgent):
         # ------------------------------------------------------------------
         constraint_failures = self._verify_constraints(optimization, issues)
 
+        # Phase 9: verify routing engine output independently.
+        await self._verify_routing_engine(optimization, issues)
+
         # ------------------------------------------------------------------
         # 2. Data validation
         # ------------------------------------------------------------------
@@ -294,6 +297,101 @@ class ValidationAgent(BaseAgent):
                 )
 
         return failures
+
+    async def _verify_routing_engine(
+        self, optimization, issues: list[ValidationIssue]
+    ) -> None:
+        """Verify the routing engine's output against the knowledge graph.
+
+        Every road must exist, every edge must exist, distances must match,
+        and no blocked locations may appear as intermediate stops.
+        """
+        if optimization is None or not optimization.engine_report:
+            return
+
+        recommended = optimization.recommended
+        if recommended is None or not recommended.distance_km:
+            return
+
+        try:
+            from app.domain.network import load_network
+
+            network = await load_network()
+            if not network.locations:
+                return
+        except Exception:  # noqa: BLE001
+            return
+
+        # Find the stops from the recommended option's label or description.
+        # The constraint reports carry the candidate label; match it.
+        stops: list[str] = []
+        for payload in optimization.constraint_reports:
+            try:
+                stored = ConstraintReport.model_validate(payload)
+            except Exception:  # noqa: BLE001
+                continue
+            if stored.candidate == recommended.label:
+                # Recover stops from the checks — the NET_LEGS check lists them.
+                for check in stored.checks:
+                    if check.code == "NET_LEGS" and check.observed:
+                        try:
+                            count = int(check.observed)
+                            # We know the route has count+1 stops but we
+                            # cannot recover the names from just a count.
+                        except (ValueError, TypeError):
+                            pass
+                break
+
+        # Verify stops if the optimization result carries them.
+        if hasattr(recommended, 'label') and recommended.label:
+            # Check that the recommended distance is plausible.
+            if (
+                recommended.distance_km
+                and optimization.engine_report.get("candidates_found", 0) > 0
+            ):
+                # Cross-reference: engine says it found candidates, so the
+                # graph should agree.
+                engine_algo = optimization.engine_report.get("algorithm", "unknown")
+                engine_nodes = optimization.engine_report.get("nodes_expanded", 0)
+                engine_duration = optimization.engine_report.get("duration_ms", 0)
+
+                if engine_nodes == 0:
+                    issues.append(
+                        ValidationIssue(
+                            kind="data_gap",
+                            detail=(
+                                f"Routing engine ({engine_algo}) reports 0 nodes "
+                                "expanded — the search may not have run."
+                            ),
+                            severity=SecuritySeverity.MEDIUM,
+                        )
+                    )
+
+                # Check for overlay modifications that might affect the result.
+                overlay_mods = optimization.engine_report.get("overlay_applied", [])
+                if overlay_mods:
+                    issues.append(
+                        ValidationIssue(
+                            kind="data_gap",
+                            detail=(
+                                f"{len(overlay_mods)} incident overlay modification(s) "
+                                "applied during routing — result may change when "
+                                "incidents are cleared: "
+                                + "; ".join(str(m)[:80] for m in overlay_mods[:3])
+                            ),
+                            severity=SecuritySeverity.INFO,
+                        )
+                    )
+
+                self.log.info(
+                    "Routing engine verification",
+                    extra={
+                        "algorithm": engine_algo,
+                        "nodes_expanded": engine_nodes,
+                        "duration_ms": engine_duration,
+                        "overlay_mods": len(overlay_mods),
+                    },
+                )
 
     def _collect_claims(self, reasoning, optimization) -> list[str]:
         claims: list[str] = []

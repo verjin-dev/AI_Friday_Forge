@@ -28,10 +28,10 @@ test_env/
 # Environment files
 # .env
 # .env.*
-!.env.example
-dashboard/.env
-dashboard/.env.*
-!dashboard/.env.example
+# !.env.example
+# dashboard/.env
+# dashboard/.env.*
+# !dashboard/.env.example
 
 # Logs and runtime files
 *.log

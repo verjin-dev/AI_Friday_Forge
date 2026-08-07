@@ -6,6 +6,58 @@ import FleetMap from "../components/FleetMap.jsx";
 import PageState from "../components/PageState.jsx";
 import { fetchLocations, fetchProfiles, planRoute } from "../data/fleet.js";
 
+function EngineTelemetry({ planning }) {
+  const [open, setOpen] = useState(false);
+  if (!planning) return null;
+  const algColors = { dijkstra: 'var(--cyan)', astar: 'var(--emerald)', yen: 'var(--indigo)' };
+
+  return (
+    <div className="drawer" style={{ borderBottom: "none", borderTop: "1px solid var(--border)", marginTop: "16px", paddingTop: "8px" }}>
+      <button 
+        type="button" 
+        onClick={() => setOpen(!open)}
+        style={{
+          width: "100%", background: "none", border: "none", padding: 0,
+          textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
+          color: "var(--text)"
+        }}
+      >
+        <h5 style={{ margin: 0 }}>Engine Telemetry</h5>
+        <span style={{ color: "var(--text-faint)", fontSize: 12 }}>{open ? "Hide" : "Show"}</span>
+      </button>
+      
+      {open && (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: "12px", fontSize: 12, color: "var(--text-secondary)" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <span className="status-tag" style={{ color: algColors[planning.algorithm] || 'var(--text)', borderColor: algColors[planning.algorithm] || 'var(--border)' }}>
+              {planning.algorithm}
+            </span>
+            <span>{planning.algorithm_reason}</span>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div><strong style={{color: "var(--text)"}}>Graph size:</strong> {planning.graph_nodes} nodes</div>
+            <div><strong style={{color: "var(--text)"}}>Candidates:</strong> {planning.candidates_found} / {planning.candidates_requested}</div>
+            <div><strong style={{color: "var(--text)"}}>Nodes expanded:</strong> {planning.nodes_expanded}</div>
+            <div><strong style={{color: "var(--text)"}}>Duration:</strong> {planning.duration_ms} ms</div>
+          </div>
+
+          {planning.overlay_applied && planning.overlay_applied.length > 0 && (
+            <div>
+              <strong style={{color: "var(--text)"}}>Overlay modifications:</strong>
+              <ul style={{ margin: "4px 0 0", paddingLeft: 16 }}>
+                {planning.overlay_applied.map((mod, i) => (
+                  <li key={i}>{mod}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Verdict({ check }) {
   const failed = !check.satisfied;
   const hard = check.severity === "hard";
@@ -338,6 +390,8 @@ export default function RoutesPage({ notify }) {
               {selected.constraint_report.unverifiable.join(", ")}
             </p>
           )}
+
+          <EngineTelemetry planning={plan.planning} />
         </section>
       )}
     </>

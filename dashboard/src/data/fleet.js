@@ -139,6 +139,28 @@ export async function setIncidentStatus(incidentId, status) {
   return response.json();
 }
 
+export async function fetchAlgorithms(signal) {
+  return getJSON("/routes/algorithms", signal);
+}
+
+export async function replanRoute(request, signal) {
+  const response = await fetch(`${API}/routes/replan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+    signal,
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function fetchMonitorStatus(signal) {
+  return getJSON("/routes/monitor/status", signal);
+}
+
 /** Placeholder fleet, used only when the backend cannot be reached. */
 export const fallbackTrucks = [
   {

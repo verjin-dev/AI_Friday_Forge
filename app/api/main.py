@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
         fleet,
         graph,
         health,
+        monitor,
         observability,
         routing,
         tools,
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(tools.router)
     app.include_router(constraints.router)
     app.include_router(observability.router)
+    app.include_router(monitor.router)
 
     return app
 

@@ -18,6 +18,7 @@ from app.domain.delay import predict_with_live_traffic
 from app.domain.network import RoadNetwork, RoutePath, load_network
 from app.mcp.builtin import weather_lookup
 from app.llm.structured import LLMUsage, structured_call
+from app.core.config import settings
 
 
 class CandidateSet(BaseModel):
@@ -114,7 +115,7 @@ class OptimizationAgent(BaseAgent):
                     profile=profile,
                     objective=note or f"Route options for: {question[:160]}",
                     usage=usage,
-                    method="graph_pathfinding",
+                    method="enterprise_routing_engine" if settings.routing_engine_drives_plan else "graph_pathfinding",
                     assumptions=[
                         "Routes derived from CONNECTED_TO / ALTERNATE_ROUTE edges "
                         "and incident status in the knowledge graph."
@@ -191,6 +192,12 @@ class OptimizationAgent(BaseAgent):
             )
             return None, usage, None
 
+        # Phase 8: Use the enterprise routing engine when enabled.
+        if settings.routing_engine_drives_plan:
+            return await self._plan_with_engine(
+                origin, destination, network, state, usage
+            )
+
         paths = network.plan(origin, destination)
         if not paths:
             # No path at all is a real answer, expressed as a single infeasible
@@ -260,6 +267,118 @@ class OptimizationAgent(BaseAgent):
 
         return candidates, usage, f"Route from {origin} to {destination}"
 
+    async def _plan_with_engine(
+        self,
+        origin: str,
+        destination: str,
+        network: RoadNetwork,
+        state: PlatformState,
+        usage: LLMUsage,
+    ) -> tuple[list[RouteCandidate] | None, LLMUsage, str | None]:
+        """Route via the deterministic engine — enterprise cost model, not enumeration."""
+        from app.domain.geo import resolve_all
+        from app.routing import get_routing_engine, VehicleContext as EngineVehicle
+
+        coordinates = await resolve_all(
+            sorted(network.locations), network.locations
+        )
+
+        engine_candidates, report = get_routing_engine().plan(
+            network,
+            origin,
+            destination,
+            vehicle=EngineVehicle(),
+            coordinates=coordinates,
+        )
+
+        if not engine_candidates:
+            self.log.info(
+                "Engine found no routes",
+                extra={"origin": origin, "destination": destination},
+            )
+            return (
+                [
+                    RouteCandidate(
+                        label=f"{origin} → {destination}",
+                        description=(
+                            "No connected road path exists between these locations "
+                            "in the network graph after applying incident overlays "
+                            "and vehicle restrictions."
+                        ),
+                        stops=[origin, destination],
+                        legs_verified=False,
+                        missing_legs=[f"{origin} → {destination}"],
+                    )
+                ],
+                usage,
+                f"Route from {origin} to {destination}",
+            )
+
+        # Convert engine candidates to constraint-checkable RouteCandidate models.
+        paths = [
+            network.build_path(ec.stops)
+            for ec in engine_candidates
+        ]
+        paths = [p for p in paths if p is not None]
+
+        if not paths:
+            return None, usage, None
+
+        # Reuse tool-agent predictions or compute fresh ones.
+        reused = _predictions_from_tool_results(state, origin, destination)
+        if reused:
+            self.log.info(
+                "Reusing route_plan predictions", extra={"routes": len(reused)}
+            )
+            etas = reused
+        else:
+            weather: dict | None = None
+            try:
+                weather = await weather_lookup(destination)
+            except Exception as exc:
+                self.log.info("Weather unavailable", extra={"error": str(exc)[:160]})
+
+            predictions = await predict_with_live_traffic(paths, weather=weather)
+            etas = {
+                path.label: {
+                    "total": prediction.predicted_total_minutes,
+                    "free_flow": prediction.free_flow_minutes,
+                    "delay": prediction.predicted_delay_minutes,
+                    "risk": prediction.risk.value,
+                    "live": prediction.live_traffic_used,
+                }
+                for path, prediction in zip(paths, predictions)
+            }
+
+        candidates: list[RouteCandidate] = []
+        for idx, path in enumerate(paths):
+            candidate = _path_to_candidate(path)
+            eta = etas.get(path.label)
+            if eta:
+                candidate.duration_minutes = eta["total"]
+                candidate.description = (
+                    f"{candidate.description} · ETA {eta['total']:.0f} min "
+                    f"({eta['free_flow']:.0f} baseline + {eta['delay']:.0f} delay, "
+                    f"{eta['risk']} risk"
+                    + (", live traffic" if eta.get("live") else ", no live traffic")
+                    + ")"
+                )
+            # Carry engine scoring through.
+            if idx < len(engine_candidates):
+                ec = engine_candidates[idx]
+                candidate.description += (
+                    f" | Engine: score={ec.route_score:.3f}, "
+                    f"logistics={ec.logistics_score:.3f}, "
+                    f"confidence={ec.confidence:.2f}"
+                )
+            candidates.append(candidate)
+
+        # Stash engine telemetry for Explanation and Validation agents.
+        self._engine_report = report.as_dict()
+        self._engine_report["candidates_evaluated"] = len(engine_candidates)
+
+        return candidates, usage, f"Route from {origin} to {destination}"
+
     def _build_outcome(
         self,
         candidates: list[RouteCandidate],
@@ -289,6 +408,9 @@ class OptimizationAgent(BaseAgent):
             constraint_reports=[report.model_dump(mode="json") for report in reports],
             all_infeasible=not feasible,
             method=method,
+            engine_report=getattr(self, '_engine_report', {}),
+            algorithm_used=getattr(self, '_engine_report', {}).get('algorithm', ''),
+            candidates_evaluated=getattr(self, '_engine_report', {}).get('candidates_evaluated', 0),
         )
 
         if feasible:

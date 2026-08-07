@@ -209,7 +209,20 @@ async def load(directory: Path, *, reset: bool) -> dict[str, int]:
                 SET r.distance_km = toFloat(row.distance_km),
                     r.road_name = row.road_name,
                     r.relation_id = row.relation_id,
-                    r.relation_type = coalesce(row.relation_type, 'CONNECTS')
+                    r.relation_type = coalesce(row.relation_type, 'CONNECTS'),
+                    r.road_class = CASE WHEN row.road_class IS NOT NULL AND row.road_class <> "" THEN row.road_class ELSE r.road_class END,
+                    r.average_speed_kmh = CASE WHEN row.average_speed_kmh IS NOT NULL AND row.average_speed_kmh <> "" THEN toFloat(row.average_speed_kmh) ELSE r.average_speed_kmh END,
+                    r.road_condition = CASE WHEN row.road_condition IS NOT NULL AND row.road_condition <> "" THEN toFloat(row.road_condition) ELSE r.road_condition END,
+                    r.road_priority = CASE WHEN row.road_priority IS NOT NULL AND row.road_priority <> "" THEN toFloat(row.road_priority) ELSE r.road_priority END,
+                    r.historical_delay_min = CASE WHEN row.historical_delay_min IS NOT NULL AND row.historical_delay_min <> "" THEN toFloat(row.historical_delay_min) ELSE r.historical_delay_min END,
+                    r.incident_probability = CASE WHEN row.incident_probability IS NOT NULL AND row.incident_probability <> "" THEN toFloat(row.incident_probability) ELSE r.incident_probability END,
+                    r.weather_risk = CASE WHEN row.weather_risk IS NOT NULL AND row.weather_risk <> "" THEN toFloat(row.weather_risk) ELSE r.weather_risk END,
+                    r.toll_cost = CASE WHEN row.toll_cost IS NOT NULL AND row.toll_cost <> "" THEN toFloat(row.toll_cost) ELSE r.toll_cost END,
+                    r.fuel_cost_per_km = CASE WHEN row.fuel_cost_per_km IS NOT NULL AND row.fuel_cost_per_km <> "" THEN toFloat(row.fuel_cost_per_km) ELSE r.fuel_cost_per_km END,
+                    r.weight_limit_kg = CASE WHEN row.weight_limit_kg IS NOT NULL AND row.weight_limit_kg <> "" THEN toFloat(row.weight_limit_kg) ELSE r.weight_limit_kg END,
+                    r.height_limit_m = CASE WHEN row.height_limit_m IS NOT NULL AND row.height_limit_m <> "" THEN toFloat(row.height_limit_m) ELSE r.height_limit_m END,
+                    r.hazmat_allowed = CASE WHEN row.hazmat_allowed IS NOT NULL AND row.hazmat_allowed <> "" THEN toBoolean(row.hazmat_allowed) ELSE r.hazmat_allowed END,
+                    r.cold_chain_supported = CASE WHEN row.cold_chain_supported IS NOT NULL AND row.cold_chain_supported <> "" THEN toBoolean(row.cold_chain_supported) ELSE r.cold_chain_supported END
                 """,
                 {"rows": roads},
             )
