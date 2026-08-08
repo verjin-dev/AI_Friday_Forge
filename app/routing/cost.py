@@ -488,6 +488,10 @@ class CostBreakdown:
     quality: float = 0.0
     historical_delay: float = 0.0
     priority: float = 0.0
+    #: Route-level ML figures. Reported, not summed into ``total`` — see the note
+    #: in :meth:`CostModel.evaluate`.
+    ml_expected_delay: float = 0.0
+    ml_risk: float = 0.0
     blocked_reason: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
@@ -507,6 +511,8 @@ class CostBreakdown:
             "sla_penalty": round(self.sla_penalty, 2),
             "road_quality_term": round(self.quality, 2),
             "historical_delay_term": round(self.historical_delay, 2),
+            "ml_expected_delay_term": round(self.ml_expected_delay, 2),
+            "ml_risk_term": round(self.ml_risk, 2),
             "blocked_reason": self.blocked_reason,
         }
 
@@ -652,6 +658,13 @@ class CostModel:
         # Risk & ML Prediction influence
         risk_term = attributes.incident_probability * settings.incident_risk_minutes * weights.risk
 
+        # The ML prediction is a single route-level figure. Adding it to every
+        # edge made it a per-hop surcharge — with the delivered data it was ~57%
+        # of each edge's cost, identical on all of them, so the search was driven
+        # by hop count and the incident penalties that are supposed to decide the
+        # route were drowned out. A constant cannot discriminate between
+        # candidates for the same origin and destination, so it is reported for
+        # transparency and kept out of the traversal cost.
         ml_risk_term = 0.0
         ml_delay_term = 0.0
         if self.ml_prediction:
@@ -676,8 +689,6 @@ class CostModel:
             + driver_hos_penalty
             + sla_penalty
             + risk_term
-            + ml_risk_term
-            + ml_delay_term
             + quality_term
             + delay_term
             + priority_term
@@ -701,6 +712,8 @@ class CostModel:
             quality=quality_term,
             historical_delay=delay_term,
             priority=priority_term,
+            ml_expected_delay=ml_delay_term,
+            ml_risk=ml_risk_term,
         )
 
     def cost(self, leg: Any, *, extra_penalty: float = 0.0) -> float:

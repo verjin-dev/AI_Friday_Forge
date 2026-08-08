@@ -83,6 +83,12 @@ STATIC_COORDINATES: dict[str, tuple[float, float]] = {
     "karthikappally": (9.2270, 76.4340),
     "thakazhy": (9.3810, 76.4210),
     "mannar": (9.3220, 76.5330),
+    # --- Pathanamthitta district ---
+    #: Adoor is on the MC Road corridor and appears in delivered routes, but had
+    #: no entry here, so it resolved to no coordinates at all: no map pin, and no
+    #: geographic lower bound for A* through one of the busiest junctions.
+    "adoor": (9.1594, 76.7314),
+    "pathanamthitta": (9.2648, 76.7870),
     # --- Kottayam district ---
     "changanassery": (9.4450, 76.5400),
     "kottayam": (9.5916, 76.5222),

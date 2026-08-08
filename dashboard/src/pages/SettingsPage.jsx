@@ -50,6 +50,14 @@ export default function SettingsPage({ theme, onToggleTheme }) {
     return () => controller.abort();
   }, []);
 
+  // Names of the first few registered tools. Built explicitly because
+  // concatenating an ellipsis onto an unresolved optional chain renders the
+  // literal string "undefined…" while the request is in flight or has failed.
+  const names = (tools?.tools || []).slice(0, 4).map((tool) => tool.name);
+  const toolPreview = names.length
+    ? `${names.join(", ")}${(tools?.tools?.length ?? 0) > names.length ? "…" : ""}`
+    : undefined;
+
   return (
     <PageState loading={loading} error={error}>
       <section className="split">
@@ -88,12 +96,7 @@ export default function SettingsPage({ theme, onToggleTheme }) {
                 <Row
                   label="Tools registered"
                   value={health?.tools?.registered ?? 0}
-                  hint={
-                    tools?.tools
-                      ?.slice(0, 4)
-                      .map((tool) => tool.name)
-                      .join(", ") + "…"
-                  }
+                  hint={toolPreview}
                 />
                 <Row
                   label="Reflection loops"

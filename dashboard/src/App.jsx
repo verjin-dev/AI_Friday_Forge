@@ -64,8 +64,21 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
         setFleet(payload);
         setSelectedTruck((current) => {
           if (!current) return payload.trucks[0] || null;
-          return payload.trucks.find((t) => t.id === current.id) || payload.trucks[0];
+          return (
+            payload.trucks.find((t) => t.id === current.id) ||
+            payload.trucks[0] ||
+            null
+          );
         });
+        // The open details drawer renders `detailTruck`, not `fleet.trucks`.
+        // Without re-pointing it at the refreshed record it keeps showing the
+        // constraint verdict and delay factors from before this refresh — so
+        // clearing an incident left the drawer still naming that incident.
+        setDetailTruck((current) =>
+          current
+            ? payload.trucks.find((t) => t.id === current.id) || null
+            : null
+        );
         if (announce) notify("Fleet refreshed from the live network.", "success");
       } catch (exc) {
         setFleet({
@@ -173,25 +186,30 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
           ? truck.route.split(" to ")
           : ["Kochi", "Thiruvananthapuram"];
 
+      // `current_node` means "where the vehicle actually is — everything before
+      // it is already driven". `next_stop` is where it is *heading*, so sending
+      // that put the branch point one stop too far forward: on a final leg it
+      // resolves to the destination and the replanner correctly refuses with
+      // "the vehicle has already reached the destination". The backend states
+      // the real position in the timeline, so use that.
+      const timelineCurrent = (truck.timeline || []).find(
+        (entry) => entry.state === "current"
+      )?.stop;
+      const nextIndex = truck.next_stop ? rawStops.indexOf(truck.next_stop) : -1;
       const currentNode =
-        truck.next_stop || (rawStops.length > 1 ? rawStops[1] : rawStops[0]);
-      const currentIndex = rawStops.indexOf(currentNode);
-      const nextIndex =
-        currentIndex >= 0 && currentIndex < rawStops.length - 1
-          ? currentIndex + 1
-          : 1;
-      const blockedEdge = [
-        rawStops[Math.max(0, nextIndex - 1)],
-        rawStops[nextIndex],
-      ];
+        (timelineCurrent && rawStops.includes(timelineCurrent) && timelineCurrent) ||
+        (nextIndex > 0 ? rawStops[nextIndex - 1] : rawStops[0]);
 
       notify(`Re-routing ${truck.id} via Segment Replanner…`, "info");
 
       try {
+        // No fabricated `blocked_edge`. The replanner builds its own overlay
+        // from the live incident state, so naming a leg here forced a detour
+        // around a road that may have just been cleared — and the old index
+        // fallback could even select an already-driven leg.
         const outcome = await replanRoute({
           stops: rawStops,
           current_node: currentNode,
-          blocked_edge: blockedEdge,
           reason: "Dispatcher manual re-route request",
         });
 
@@ -224,11 +242,27 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
             distanceKm: newDistanceKm,
             status: "On route",
             feasible: true,
-            next_stop: newStops.length > 1 ? newStops[1].name : truck.next_stop,
+            // The stop ahead of the vehicle, not the second stop of the whole
+            // spliced route — that one is inside the already-driven prefix.
+            next_stop: (() => {
+              const at = outcome.route.stops.indexOf(currentNode);
+              return at >= 0 && at < outcome.route.stops.length - 1
+                ? outcome.route.stops[at + 1]
+                : truck.next_stop;
+            })(),
             distance_remaining_km: outcome.added_distance_km != null
               ? (truck.distance_remaining_km || truck.distanceKm || 0) + outcome.added_distance_km
               : truck.distance_remaining_km,
-            softViolations: [rerouteNote],
+            softViolations: [
+              rerouteNote,
+              "Constraint verdict and delay are not yet re-evaluated for this " +
+                "diversion — plan it on the Routes page for a full check.",
+            ],
+            // These described the previous corridor. Keeping them alongside
+            // `feasible: true` showed a route as compliant while still naming
+            // the incident it was just re-routed around.
+            hardViolations: [],
+            delayFactors: [],
             replanOutcome: outcome,
           };
 
@@ -252,17 +286,21 @@ export default function App({ session, onSignOut, onNavigate, theme, onToggleThe
           );
         } else {
           notify(
-            `Re-planning result: ${
-              outcome?.note || outcome?.reason || "No alternate path found"
+            `No re-route applied to ${truck.id}: ${
+              outcome?.note || outcome?.reason || "no alternate path found"
             }`,
             "warning"
           );
+          // Nothing changed about the route, but the incident state that made
+          // the operator press Re-route may well have. Pull fresh evidence so a
+          // cleared incident stops being reported against this lane.
+          await load();
         }
       } catch (err) {
         notify(`Re-routing failed: ${err.message}`, "error");
       }
     },
-    [notify]
+    [notify, load]
   );
 
   const toggleRow = useCallback((id) => {

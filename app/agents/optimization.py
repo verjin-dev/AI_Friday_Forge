@@ -14,6 +14,7 @@ from app.domain.constraints import (
     get_constraint_profile,
     report_to_text,
 )
+from app.domain.candidates import path_to_candidate as _path_to_candidate
 from app.domain.delay import predict_with_live_traffic
 from app.domain.network import RoadNetwork, RoutePath, load_network
 from app.mcp.builtin import weather_lookup
@@ -478,25 +479,9 @@ def _predictions_from_tool_results(
     return {}
 
 
-def _path_to_candidate(path: RoutePath) -> RouteCandidate:
-    """Convert a graph-derived path into a constraint-checkable candidate.
-
-    Every field here originates in the knowledge graph, so the constraint
-    engine is verifying data, not a model's assertion.
-    """
-
-    return RouteCandidate(
-        label=path.label or " → ".join(path.stops),
-        description=path.describe(),
-        stops=path.stops,
-        distance_km=path.total_distance_km,
-        network_distance_km=path.total_distance_km,
-        stop_count=len(path.stops),
-        legs_verified=path.legs_verified,
-        blocking_incidents=[item.describe() for item in path.blocking_incidents],
-        endpoint_incidents=[item.describe() for item in path.endpoint_incidents],
-        advisory_incidents=[item.describe() for item in path.advisory_incidents],
-    )
+# ``_path_to_candidate`` now lives in app.domain.candidates and is imported at
+# the top of this module. The alias is kept because this name is part of the
+# existing surface (tests and callers import it from here).
 
 
 def _verify_against_network(candidate: RouteCandidate, network: RoadNetwork) -> None:

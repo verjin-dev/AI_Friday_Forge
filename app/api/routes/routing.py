@@ -6,9 +6,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.agents.optimization import _path_to_candidate
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.domain.candidates import path_to_candidate
 from app.domain.constraints import evaluate_candidate, get_constraint_profile
 from app.domain.fleet import apply_profile, get_profile, profile_constraint_overrides
 from app.domain.delay import model_card, predict_with_live_traffic
@@ -226,7 +226,7 @@ async def plan(
 
     results: list[dict[str, Any]] = []
     for path, prediction in zip(paths, predictions):
-        candidate = _path_to_candidate(path)
+        candidate = path_to_candidate(path)
         # Transit time drives the driver-hours and SLA rules, so it must be set
         # before the profile is applied.
         candidate.duration_minutes = prediction.predicted_total_minutes

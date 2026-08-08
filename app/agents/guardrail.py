@@ -55,7 +55,7 @@ class GuardrailAgent(BaseAgent):
         toxicity_findings = detect_toxicity(sanitized_prompt)
 
         # 3. PII Protection & Actions
-        pii_action = getattr(settings, "security_pii_action", "mask") if hasattr(settings, "security_pii_action") else "mask"
+        pii_action = settings.security_pii_action
         processed_question, pii_findings = process_pii_actions(
             sanitized_prompt,
             action=pii_action,

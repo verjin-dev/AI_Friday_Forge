@@ -25,13 +25,13 @@ env/
 ENV/
 test_env/
 
-# Environment files
-# .env
-# .env.*
-# !.env.example
-# dashboard/.env
-# dashboard/.env.*
-# !dashboard/.env.example
+# Environment files — these hold live credentials and must never be committed.
+.env
+.env.*
+!.env.example
+dashboard/.env
+dashboard/.env.*
+!dashboard/.env.example
 
 # Logs and runtime files
 *.log

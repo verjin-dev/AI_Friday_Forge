@@ -133,23 +133,27 @@ export default function RoutesPage({ notify }) {
     } catch (exc) {
       setError(exc.message);
       setPlan(null);
+      // `selected` is a route out of the plan that has just been discarded.
+      // Leaving it set makes the sections below dereference a null `plan`.
+      setSelected(null);
     } finally {
       setLoading(false);
     }
   }, [origin, destination, profile, notify]);
 
   // Shape the chosen route so FleetMap can draw it.
-  const mapTruck = selected
-    ? {
-        id: plan?.recommended_label || "route",
-        route: `${plan.origin} to ${plan.destination}`,
-        stops: (selected.coordinates || []).map((point, index) => ({
-          name: selected.stops[index],
-          lat: point.latitude,
-          lng: point.longitude,
-        })),
-      }
-    : null;
+  const mapTruck =
+    plan && selected
+      ? {
+          id: plan.recommended_label || "route",
+          route: `${plan.origin} to ${plan.destination}`,
+          stops: (selected.coordinates || []).map((point, index) => ({
+            name: selected.stops[index],
+            lat: point.latitude,
+            lng: point.longitude,
+          })),
+        }
+      : null;
 
   return (
     <>
@@ -335,7 +339,7 @@ export default function RoutesPage({ notify }) {
         </section>
       )}
 
-      {selected && (
+      {plan && selected && (
         <section className="card">
           <div className="panel-head">
             <h3>Constraint report</h3>

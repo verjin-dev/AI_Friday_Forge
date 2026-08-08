@@ -65,7 +65,14 @@ class Settings(BaseSettings):
 
     #: Incident severities that make a location impassable. Only Critical by
     #: default — High and below are modelled as delay, not as a hard block.
-    blocking_severities: list[str] = Field(default_factory=lambda: ["critical", "high"])
+    #:
+    #: This previously included "high", which contradicted the line above and had
+    #: a large operational cost: High is the most common severity in the data, so
+    #: 30 of 55 locations were impassable and 95% of location pairs had no route
+    #: at all. As a penalty instead, a High incident makes a corridor expensive
+    #: and the engine routes around it — which is what a dispatcher expects, and
+    #: what makes re-routing observable rather than a dead end.
+    blocking_severities: list[str] = Field(default_factory=lambda: ["critical"])
 
     # ------------------------------------------------------------------
     # Routing engine
@@ -154,6 +161,11 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------
     security_block_on_injection: bool = True
     security_redact_pii: bool = True
+    #: What the Guardrail Agent does with detected personal data. "mask" keeps
+    #: the text readable with values redacted; "remove" deletes the span;
+    #: "encrypt" substitutes a reversible token; "audit" records the finding and
+    #: passes the text through unchanged.
+    security_pii_action: Literal["mask", "remove", "encrypt", "audit"] = "mask"
     security_default_role: str = "analyst"
     security_audit_log_path: Path = PROJECT_ROOT / "data" / "security_audit.jsonl"
 

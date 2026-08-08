@@ -23,12 +23,15 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Any
 
+from app.core.config import settings
 from app.core.logging import get_logger
+from app.domain.candidates import path_to_candidate
 from app.domain.constraints import evaluate_candidate
 from app.domain.delay import predict_with_live_traffic
 from app.domain.fleet import apply_profile, load_profiles, profile_constraint_overrides
 from app.domain.geo import resolve_all
 from app.domain.network import RoadNetwork, load_network
+from app.routing import VehicleContext, get_routing_engine
 
 
 logger = get_logger(__name__)
@@ -117,6 +120,45 @@ def _pick_corridors(network: RoadNetwork) -> list[tuple[str, str, str]]:
     return pairs
 
 
+def _corridor_paths(
+    network: RoadNetwork,
+    origin: str,
+    destination: str,
+    coordinates: dict[str, dict[str, float]],
+    k: int = 3,
+) -> list:
+    """Candidate paths for a lane, from the routing engine where it is enabled.
+
+    ``RoadNetwork.plan`` is the legacy enumeration: it finds the shortest simple
+    paths and then *labels* whichever ones run through an active incident as
+    blocked. It never routes around them. ``/api/routes/plan`` has used the
+    routing engine — which applies the incident overlay and therefore avoids
+    blocked locations — since the engine landed, so the two surfaces disagreed
+    about the same lane: the Routes page offered a compliant corridor while the
+    fleet view reported the identical origin and destination as blocked and
+    parked the vehicle. This closes that gap by planning the fleet the same way.
+    """
+
+    if settings.routing_engine_drives_plan:
+        candidates, _ = get_routing_engine().plan(
+            network,
+            origin,
+            destination,
+            vehicle=VehicleContext.from_profile(None),
+            coordinates=coordinates,
+            k=k,
+        )
+        rebuilt = [
+            path
+            for path in (network.build_path(c.stops) for c in candidates)
+            if path is not None
+        ]
+        if rebuilt:
+            return rebuilt
+
+    return network.plan(origin, destination, k=k)
+
+
 async def build_fleet(limit: int = 6) -> dict[str, Any]:
     """Plan every corridor and present the result as a fleet view."""
 
@@ -138,7 +180,7 @@ async def build_fleet(limit: int = 6) -> dict[str, Any]:
     alerts: list[dict[str, Any]] = []
 
     for index, (origin, destination, load) in enumerate(corridors):
-        paths = network.plan(origin, destination, k=3)
+        paths = _corridor_paths(network, origin, destination, coordinates)
         truck_id = f"LP-{1000 + index * 137:04d}"
 
         if not paths:
@@ -421,8 +463,6 @@ def _allocate(paths, predictions, profiles):
     least-bad pairing so the dashboard can still explain what blocks the lane.
     """
 
-    from app.agents.optimization import _path_to_candidate
-
     best_compliant = None
     best_fallback = None
 
@@ -432,7 +472,7 @@ def _allocate(paths, predictions, profiles):
 
     for path, prediction in ordered:
         for profile in profiles or [None]:
-            candidate = _path_to_candidate(path)
+            candidate = path_to_candidate(path)
             candidate.duration_minutes = prediction.predicted_total_minutes
 
             if profile is not None:

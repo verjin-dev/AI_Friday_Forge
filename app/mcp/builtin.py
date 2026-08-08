@@ -10,6 +10,7 @@ import httpx
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.domain.candidates import path_to_candidate
 from app.domain.delay import predict_with_live_traffic
 from app.domain.gmaps import road_geometry, snap_to_roads
 from app.domain.network import load_network
@@ -471,17 +472,16 @@ async def evaluate_constraints(
     payload_volume_m3: float | None = None,
 ) -> dict[str, Any]:
     """Evaluate 19 enterprise logistics and vehicle constraints against a proposed route."""
-    from app.agents.optimization import _path_to_candidate
     from app.domain.constraints import evaluate_candidate, get_constraint_profile
     from app.domain.fleet import apply_profile, get_profile, profile_constraint_overrides
 
     network = await load_network()
     path = network.build_path(stops)
-    candidate = _path_to_candidate(path) if path else None
+    candidate = path_to_candidate(path) if path else None
     if not candidate and len(stops) >= 2:
         planned = network.plan(stops[0], stops[-1])
         if planned:
-            candidate = _path_to_candidate(planned[0])
+            candidate = path_to_candidate(planned[0])
     if not candidate:
         return {"feasible": False, "error": f"Could not build route candidate for stops: {stops}"}
 

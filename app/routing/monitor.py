@@ -45,6 +45,9 @@ class MonitoredRoute:
     original_eta_minutes: float
     current_eta_minutes: float
     events: list[MonitoringEvent] = field(default_factory=list)
+    #: Wall-clock counterpart to ``last_polled``, which is a monotonic reading
+    #: and therefore meaningless to an HTTP client on its own.
+    last_polled_at: str = ""
 
 
 class RouteMonitor:
@@ -71,7 +74,7 @@ class RouteMonitor:
 
         route_id = str(uuid.uuid4())
         now_ts = time.monotonic()
-        
+
         self._routes[route_id] = MonitoredRoute(
             id=route_id,
             route=route,
@@ -81,6 +84,7 @@ class RouteMonitor:
             original_eta_minutes=original_eta,
             current_eta_minutes=original_eta,
             events=[],
+            last_polled_at=datetime.now(timezone.utc).isoformat(),
         )
         logger.info(f"Registered route {route_id} for monitoring.")
         return route_id
@@ -88,16 +92,23 @@ class RouteMonitor:
     def deregister(self, route_id: str) -> bool:
         if route_id not in self._routes:
             return False
-        
-        route = self._routes.pop(route_id)
-        evt = MonitoringEvent(
-            event_type=MonitoringEventType.deregistered,
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            message="Route deregistered.",
-        )
-        route.events.append(evt)
+
+        # The record is dropped, so there is nowhere for a "deregistered" event
+        # to be read from; the log line is the durable record of the removal.
+        self._routes.pop(route_id)
         logger.info(f"Deregistered route {route_id}.")
         return True
+
+    def get(self, route_id: str) -> MonitoredRoute | None:
+        """Look up a monitored route without reaching into private state."""
+
+        return self._routes.get(route_id)
+
+    def events(self, route_id: str) -> list[MonitoringEvent] | None:
+        """Event history for a route, or None when the route is not monitored."""
+
+        route = self._routes.get(route_id)
+        return route.events if route is not None else None
 
     def _check_incidents(self, route: MonitoredRoute, network: Any) -> list[str]:
         if not network:
@@ -121,12 +132,13 @@ class RouteMonitor:
         # we assume network or other mechanism updates this if provided.
         # For tests, the test could modify current_eta_minutes before calling poll.
         
-        route.last_polled = time.monotonic()
-        delay_delta = route.current_eta_minutes - route.original_eta_minutes
-        
-        new_incidents = self._check_incidents(route, network)
         timestamp = datetime.now(timezone.utc).isoformat()
-        
+        route.last_polled = time.monotonic()
+        route.last_polled_at = timestamp
+        delay_delta = route.current_eta_minutes - route.original_eta_minutes
+
+        new_incidents = self._check_incidents(route, network)
+
         if self._should_replan(delay_delta):
             evt_type = MonitoringEventType.replan_triggered
             msg = f"Delay threshold exceeded ({delay_delta:.1f} mins > {settings.monitor_replan_threshold_minutes:.1f} mins). Replanning."
@@ -166,6 +178,8 @@ class RouteMonitor:
                     "original_eta": r.original_eta_minutes,
                     "current_eta": r.current_eta_minutes,
                     "last_polled": r.last_polled,
+                    "last_polled_at": r.last_polled_at,
+                    "stops": r.route.stops,
                     "events_count": len(r.events),
                 }
                 for r_id, r in self._routes.items()

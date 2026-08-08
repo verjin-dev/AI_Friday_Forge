@@ -2,13 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.routing import get_route_monitor, RouteCandidate, VehicleContext, MonitoringEvent
+from app.domain.fleet import get_profile
 from app.domain.network import load_network
+from app.routing import (
+    MonitoringEvent,
+    RouteCandidate,
+    VehicleContext,
+    get_route_monitor,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api/routes/monitor", tags=["monitoring"])
@@ -33,86 +39,102 @@ class DeregisterResponse(BaseModel):
 
 
 @router.post("/start", response_model=StartMonitorResponse)
-async def start_monitoring(req: StartMonitorRequest) -> Any:
+async def start_monitoring(req: StartMonitorRequest) -> StartMonitorResponse:
+    """Register a route for delay monitoring.
+
+    ``route_stops`` is the corridor being driven. Only the stop sequence and the
+    promised ETA are needed — polling compares the current ETA against the
+    original, so no cost breakdown has to be carried in.
+    """
+
     if not settings.enable_route_monitoring:
         raise HTTPException(
             status_code=400, detail="Route monitoring is disabled by configuration."
         )
 
-    monitor = get_route_monitor()
-    
-    # Reconstruct a dummy or minimal RouteCandidate for monitoring purposes
-    # In a real scenario, this would be a real route object from the engine
-    route = RouteCandidate(
-        distance_km=0.0,
-        travel_time_minutes=req.original_eta_minutes,
-        stops=req.route_stops,
-        edges=[],
-    )
-    
-    vehicle = None
-    if req.vehicle_profile:
-        # Simplistic mapping or placeholder
-        vehicle = VehicleContext(profile=req.vehicle_profile)
+    network = await load_network()
+    stops = [
+        network.resolve(stop) or stop
+        for stop in (req.route_stops or [req.origin, req.destination])
+    ]
+    # RouteCandidate.label indexes stops[0] and stops[-1], so a shorter sequence
+    # would produce a monitored route that raises on read.
+    if len(stops) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="route_stops must contain at least an origin and a destination.",
+        )
 
+    vehicle: VehicleContext | None = None
+    if req.vehicle_profile:
+        profile = get_profile(req.vehicle_profile)
+        if profile is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown vehicle profile '{req.vehicle_profile}'.",
+            )
+        vehicle = VehicleContext.from_profile(profile)
+
+    route = RouteCandidate(
+        rank=1,
+        stops=stops,
+        estimated_travel_minutes=req.original_eta_minutes,
+    )
+
+    monitor = get_route_monitor()
     try:
         route_id = monitor.register(
-            route=route, 
-            vehicle=vehicle, 
-            original_eta=req.original_eta_minutes
+            route=route,
+            vehicle=vehicle,
+            original_eta=req.original_eta_minutes,
         )
-    except RuntimeError as e:
-        raise HTTPException(status_code=429, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return StartMonitorResponse(
-        id=route_id, 
-        message=f"Started monitoring route {route_id}"
-    )
-
-
-@router.delete("/{route_id}", response_model=DeregisterResponse)
-async def deregister_route(route_id: str) -> Any:
-    monitor = get_route_monitor()
-    ok = monitor.deregister(route_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail="Route not found.")
-    
-    return DeregisterResponse(
-        ok=True, 
-        message=f"Route {route_id} deregistered."
+        id=route_id, message=f"Started monitoring route {route_id}"
     )
 
 
 @router.get("/status")
 async def get_monitor_status() -> dict[str, Any]:
-    monitor = get_route_monitor()
-    return monitor.status()
+    return get_route_monitor().status()
 
 
 @router.get("/{route_id}/events", response_model=list[MonitoringEvent])
-async def get_route_events(route_id: str) -> Any:
-    monitor = get_route_monitor()
-    # Direct access to private member for API read (acceptable per spec for now)
-    if route_id not in monitor._routes:
+async def get_route_events(route_id: str) -> list[MonitoringEvent]:
+    events = get_route_monitor().events(route_id)
+    if events is None:
         raise HTTPException(status_code=404, detail="Route not found.")
-    
-    return monitor._routes[route_id].events
+    return events
 
 
 @router.post("/{route_id}/poll", response_model=MonitoringEvent)
-async def poll_route(route_id: str) -> Any:
+async def poll_route(route_id: str) -> MonitoringEvent:
     monitor = get_route_monitor()
-    if route_id not in monitor._routes:
+    if monitor.get(route_id) is None:
         raise HTTPException(status_code=404, detail="Route not found.")
 
     try:
         network = await load_network()
-        event = await monitor.poll(route_id, network)
-        return event
-    except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error polling route {route_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during polling.")
+        return await monitor.poll(route_id, network)
+    except KeyError as exc:
+        # Deregistered between the check above and the poll.
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - surface a clean 500, log the cause
+        logger.exception("Error polling route", extra={"route_id": route_id})
+        raise HTTPException(
+            status_code=500, detail="Internal server error during polling."
+        ) from exc
+
+
+@router.delete("/{route_id}", response_model=DeregisterResponse)
+async def deregister_route(route_id: str) -> DeregisterResponse:
+    if not get_route_monitor().deregister(route_id):
+        raise HTTPException(status_code=404, detail="Route not found.")
+
+    return DeregisterResponse(ok=True, message=f"Route {route_id} deregistered.")

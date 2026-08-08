@@ -21,8 +21,15 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.routing.cost import CostBreakdown, CostModel, CostWeights, VehicleContext
+from app.routing.cost import (
+    CostBreakdown,
+    CostModel,
+    CostWeights,
+    ShipmentContext,
+    VehicleContext,
+)
 from app.routing.factory import RoutingStrategyFactory, get_strategy_factory
+from app.routing.ml_prediction import get_ml_predictor
 from app.routing.overlay import GraphOverlay, GraphProjection, overlay_from_incidents
 from app.routing.strategies import SearchResult, YenKShortestStrategy
 
@@ -104,14 +111,33 @@ class _OverlayCostModel(CostModel):
     """
 
     def __init__(self, base: CostModel, projection: GraphProjection) -> None:
-        super().__init__(base.weights, base.vehicle)
+        # Carry the whole context across. Passing only weights and vehicle
+        # silently dropped the shipment, optimisation mode and environment that
+        # the caller supplied, so `mode`, `shipment` and `environment` on
+        # `plan()` never reached the traversal that actually chooses the route.
+        super().__init__(
+            weights=base.weights,
+            vehicle=base.vehicle,
+            shipment=base.shipment,
+            ml_prediction=base.ml_prediction,
+            mode=base.mode,
+            environment=base.environment,
+            penalties=base.penalties,
+        )
         self._projection = projection
 
     def evaluate(self, leg: Any, *, extra_penalty: float = 0.0) -> CostBreakdown:
         penalty = self._projection.penalty_for(
             getattr(leg, "from_location", ""), getattr(leg, "to_location", "")
         )
-        return super().evaluate(leg, extra_penalty=extra_penalty + penalty)
+        # The overlay penalty is expressed in minutes, exactly like the
+        # travel-time term, so it has to carry the same weight. It was the only
+        # minutes-based term added raw: at BALANCED the travel-time weight is 5,
+        # which left a High incident worth 30 against a median edge cost of 353.
+        # No detour can ever be justified by 8% of one hop, which is why
+        # clearing an incident never changed a route.
+        weighted = penalty * max(self.weights.travel_time, 1.0)
+        return super().evaluate(leg, extra_penalty=extra_penalty + weighted)
 
 
 class EnterpriseRouteOptimizationEngine:
@@ -171,13 +197,21 @@ class EnterpriseRouteOptimizationEngine:
             override=algorithm,
         )
 
-        # ML Feature Engineering & ML Prediction Model Pipeline
-        from app.domain.ml_prediction import get_ml_predictor
+        # ML Feature Engineering & ML Prediction Model Pipeline.
+        # The count must be of *active* incidents. It was the number of locations
+        # holding any incident record at all, including Inactive and Resolved
+        # ones, so clearing an incident from the portal did not change it.
+        active_incidents = sum(
+            1
+            for items in (getattr(network, "incidents_by_location", {}) or {}).values()
+            for item in items
+            if getattr(item, "is_active", False)
+        )
         ml_predictor = get_ml_predictor()
         features = ml_predictor.feature_pipeline.extract_features(
             distance_km=0.0,
             free_flow_minutes=0.0,
-            active_incidents_count=len(getattr(network, "incidents_by_location", {}) or {}),
+            active_incidents_count=active_incidents,
         )
         ml_pred = ml_predictor.predict(features)
 

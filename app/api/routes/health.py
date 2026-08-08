@@ -50,7 +50,7 @@ async def health() -> dict:
             "agent_active": True,
             "pi_protection": True,
             "pii_protection": True,
-            "pii_action": getattr(settings, "security_pii_action", "mask"),
+            "pii_action": settings.security_pii_action,
             "toxicity_detection": True,
             "data_leakage_prevention": True,
             "output_validation": True,
