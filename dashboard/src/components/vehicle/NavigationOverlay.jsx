@@ -1,14 +1,26 @@
 import { CornerUpRight, Navigation } from "lucide-react";
 
+const SLA_TONE = {
+  on_time: "var(--emerald)",
+  at_risk: "var(--amber)",
+  late: "var(--rose)",
+};
+
+const SLA_LABEL = {
+  on_time: "on time",
+  at_risk: "at risk",
+  late: "running late",
+};
+
 export default function NavigationOverlay({ truck }) {
   if (!truck) return null;
 
-  const arrival = truck.etaMinutes
-    ? new Date(Date.now() + truck.etaMinutes * 60000).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : truck.eta;
+  // The backend already projects arrival from the distance still to run at the
+  // measured corridor speed, plus the delay ahead. This used to add the *whole*
+  // journey time to the current clock, which put arrival hours out for a vehicle
+  // most of the way along its route.
+  const arrival = truck.eta;
+  const tone = SLA_TONE[truck.slaStatus];
 
   return (
     <div className="nav-overlay">
@@ -31,32 +43,64 @@ export default function NavigationOverlay({ truck }) {
       <div className="journey-stats">
         <div className="journey-stat">
           <div className="k">ETA</div>
-          <div className="v">{arrival || "—"}</div>
+          <div className="v" style={tone ? { color: tone } : undefined}>
+            {arrival || "—"}
+          </div>
         </div>
         <div className="journey-stat">
-          <div className="k">Remaining</div>
-          <div className="v">
-            {truck.distance_remaining_km != null
-              ? `${Math.round(truck.distance_remaining_km)} km`
+          <div className="k">
+            {truck.deliverBy && truck.deliverBy !== "—"
+              ? `Due ${truck.deliverBy}`
+              : "Due"}
+          </div>
+          <div
+            className="v"
+            style={{ ...(tone ? { color: tone } : {}), fontSize: 12.5 }}
+          >
+            {truck.slaStatus
+              ? `${SLA_LABEL[truck.slaStatus]}${
+                  truck.slaDeltaMinutes == null
+                    ? ""
+                    : ` ${Math.abs(Math.round(truck.slaDeltaMinutes))}m`
+                }`
               : "—"}
           </div>
         </div>
         <div className="journey-stat">
-          <div className="k">Delay</div>
-          <div
-            className="v"
-            style={{
-              color: truck.delayMinutes > 0 ? "var(--amber)" : "var(--emerald)",
-            }}
-          >
-            {truck.delayMinutes ? `+${Math.round(truck.delayMinutes)}m` : "none"}
+          <div className="k">Remaining</div>
+          <div className="v">
+            {truck.etaRemainingKm != null
+              ? `${Math.round(truck.etaRemainingKm)} km`
+              : "—"}
           </div>
         </div>
         <div className="journey-stat">
-          <div className="k">Source</div>
+          {/* Delay still ahead of the vehicle, not the whole journey's — what is
+              already driven past cannot make this arrival any later. */}
+          <div className="k">Delay ahead</div>
+          <div
+            className="v"
+            style={{
+              color:
+                truck.etaBufferMinutes > 0 ? "var(--amber)" : "var(--emerald)",
+            }}
+          >
+            {truck.etaBufferMinutes
+              ? `+${Math.round(truck.etaBufferMinutes)}m`
+              : "none"}
+          </div>
+        </div>
+        <div className="journey-stat">
+          <div className="k">Speed</div>
           <div className="v" style={{ fontSize: 12.5 }}>
             <Navigation size={11} aria-hidden="true" />{" "}
-            {truck.liveTraffic ? "live" : "graph"}
+            {truck.etaSpeedKmh
+              ? `${Math.round(truck.etaSpeedKmh)} km/h ${
+                  truck.etaSpeedSource === "live" ? "live" : "graph"
+                }`
+              : truck.liveTraffic
+              ? "live"
+              : "graph"}
           </div>
         </div>
       </div>

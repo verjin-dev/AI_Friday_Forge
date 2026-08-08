@@ -12,6 +12,84 @@ import {
 
 import TripTimeline from "./vehicle/TripTimeline.jsx";
 
+const SLA_TONE = {
+  on_time: "var(--emerald)",
+  at_risk: "var(--amber)",
+  late: "var(--rose)",
+};
+
+const SLA_LABEL = {
+  on_time: "on time",
+  at_risk: "at risk",
+  late: "late",
+};
+
+const formatDelta = (minutes) => {
+  const value = Math.round(Math.abs(minutes));
+  if (value === 0) return "on the minute";
+  const text = value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}m` : `${value} min`;
+  return minutes > 0 ? `${text} over` : `${text} spare`;
+};
+
+/**
+ * How the ETA was reached: speed over the distance still to run, then each
+ * delay still ahead of the vehicle. The point is that a dispatcher can argue
+ * with it — every added minute names the incident it came from.
+ */
+function EtaBreakdown({ truck }) {
+  if (truck.etaBaseMinutes == null) return null;
+
+  const round = (value) => Math.round(value ?? 0);
+
+  return (
+    <section className="drawer-section">
+      <h4>How this ETA is calculated</h4>
+      <div className="kv-list">
+        <Row
+          k="Distance left"
+          v={`${truck.etaRemainingKm} km of ${truck.distanceKm} km`}
+        />
+        <Row
+          k="Average speed"
+          v={`${truck.etaSpeedKmh} km/h`}
+          tone={truck.etaSpeedSource === "live" ? "var(--cyan)" : undefined}
+        />
+        <Row k="Driving time" v={`${round(truck.etaBaseMinutes)} min`} />
+        <Row
+          k="Incident buffer"
+          v={`+${round(truck.etaBufferMinutes)} min`}
+          tone={truck.etaBufferMinutes > 0 ? "var(--amber)" : "var(--emerald)"}
+        />
+      </div>
+
+      {truck.etaBuffer?.length > 0 && (
+        <ul className="factor-list">
+          {truck.etaBuffer.map((item, index) => (
+            <li key={index} title={item.evidence || ""}>
+              <strong style={{ color: "var(--amber)" }}>
+                +{round(item.minutes)} min
+              </strong>{" "}
+              {item.name}
+              {item.scope === "journey" && (
+                <span style={{ color: "var(--text-faint)" }}> · across the journey</span>
+              )}
+              {item.observed === false && (
+                <span style={{ color: "var(--text-faint)" }}> · assumed</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="provenance">
+        {truck.etaSpeedSource === "live"
+          ? "Speed is measured from live traffic; the buffer is the delay still ahead on this corridor."
+          : "Speed is estimated from the road classes in the graph; the buffer is the delay still ahead on this corridor."}
+      </p>
+    </section>
+  );
+}
+
 function Row({ k, v, muted, tone }) {
   return (
     <div className="kv-item">
@@ -100,7 +178,26 @@ export default function TruckDetailsDrawer({ truck, onClose, onAction, onReplan 
           <h4>Trip overview</h4>
           <div className="kv-list">
             <Row k="Driver" v={truck.driver} />
-            <Row k="ETA" v={truck.eta} />
+            <Row
+              k="ETA (live)"
+              v={truck.eta}
+              tone={SLA_TONE[truck.slaStatus] || undefined}
+            />
+            <Row
+              k="Deliver by"
+              v={
+                truck.deliverBy
+                  ? `${truck.deliverBy}${
+                      truck.slaDeltaMinutes == null
+                        ? ""
+                        : ` · ${SLA_LABEL[truck.slaStatus] || ""} ${formatDelta(
+                            truck.slaDeltaMinutes
+                          )}`
+                    }`
+                  : "—"
+              }
+              tone={SLA_TONE[truck.slaStatus] || undefined}
+            />
             <Row k="Departure" v={truck.departure || "—"} />
             <Row k="Progress" v={`${truck.progress}%`} />
             <Row k="Next stop" v={truck.next_stop || "—"} />
@@ -115,6 +212,8 @@ export default function TruckDetailsDrawer({ truck, onClose, onAction, onReplan 
             <Row k="Shipment" v={truck.load} />
           </div>
         </section>
+
+        <EtaBreakdown truck={truck} />
 
         <section className="drawer-section">
           <h4>Trip timeline</h4>

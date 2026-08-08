@@ -8,6 +8,40 @@ import { fetchKpis, fetchModelCard, fetchRunMetrics } from "../data/fleet.js";
 const percent = (value) =>
   value === null || value === undefined ? "—" : `${(value * 100).toFixed(0)}%`;
 
+const plural = (count) => (count === 1 ? "arrival" : "arrivals");
+
+/**
+ * Outcome-derived KPIs: how each is named, formatted, and what it rests on.
+ *
+ * The names were previously produced by de-underscoring the API key, which
+ * printed "on time delivery rate" and "prediction accuracy mae minutes" — MAE
+ * is an acronym and "minutes" is the unit, not part of the name. The basis text
+ * was also hardcoded to "needs actual arrival times" whatever the value, so a
+ * measured rate sat next to a note saying it could not be measured.
+ */
+const OUTCOME_METRICS = {
+  on_time_delivery_rate: {
+    label: "On-time delivery rate",
+    format: (value) => `${(value * 100).toFixed(1)}%`,
+    basis: (count) => `measured across ${count} recorded ${plural(count)}`,
+    needs: "needs actual arrival times — POST them to /api/observability/outcomes",
+  },
+  prediction_accuracy_mae_minutes: {
+    label: "Prediction accuracy (MAE)",
+    format: (value) => `${value} min`,
+    basis: (count) =>
+      `mean absolute error of predicted versus actual over ${count} ${plural(count)}`,
+    needs: "needs actual arrival times — POST them to /api/observability/outcomes",
+  },
+  cost_reduction: {
+    label: "Cost reduction",
+    format: (value) => String(value),
+    basis: () =>
+      "modelled against an unoptimised baseline at the configured fleet cost per km and per hour",
+    needs: "needs a per-km fleet cost baseline",
+  },
+};
+
 export default function AnalyticsPage() {
   const [kpis, setKpis] = useState(null);
   const [runs, setRuns] = useState(null);
@@ -35,6 +69,10 @@ export default function AnalyticsPage() {
   }, []);
 
   const measured = kpis?.measured;
+  const outcomeCount = kpis?.outcomes_recorded ?? 0;
+  const pendingCount = Object.values(kpis?.pending_outcome_data || {}).filter(
+    (value) => value === null || value === undefined
+  ).length;
 
   const cards = measured
     ? [
@@ -86,10 +124,15 @@ export default function AnalyticsPage() {
 
       <section className="card">
         <div className="panel-head">
-          <h3>Pending outcome data</h3>
+          <h3>Outcome-based KPIs</h3>
           <span className="sub">
-            {kpis?.outcomes_recorded ?? 0} arrivals recorded
+            {outcomeCount} {plural(outcomeCount)} recorded
           </span>
+          {pendingCount > 0 && (
+            <span className="sub" style={{ marginLeft: "auto", color: "var(--amber)" }}>
+              {pendingCount} still awaiting data
+            </span>
+          )}
         </div>
         <div className="table-wrap">
           <table>
@@ -97,23 +140,37 @@ export default function AnalyticsPage() {
               <tr>
                 <th>Metric</th>
                 <th>Value</th>
-                <th>Why</th>
+                <th>Basis</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(kpis?.pending_outcome_data || {}).map(([key, value]) => (
-                <tr key={key}>
-                  <td className="cell-primary">{key.replace(/_/g, " ")}</td>
-                  <td style={{ color: value === null ? "var(--text-faint)" : "var(--text)" }}>
-                    {value === null ? "not measurable yet" : value}
-                  </td>
-                  <td className="cell-sub">
-                    {key.includes("cost")
-                      ? "needs a per-km fleet cost baseline"
-                      : "needs actual arrival times"}
-                  </td>
-                </tr>
-              ))}
+              {Object.entries(kpis?.pending_outcome_data || {}).map(([key, value]) => {
+                const meta = OUTCOME_METRICS[key] || {};
+                const measured = value !== null && value !== undefined;
+                return (
+                  <tr key={key}>
+                    <td className="cell-primary">
+                      {meta.label || key.replace(/_/g, " ")}
+                    </td>
+                    <td
+                      style={{
+                        color: measured ? "var(--text)" : "var(--text-faint)",
+                      }}
+                    >
+                      {measured
+                        ? meta.format
+                          ? meta.format(value)
+                          : value
+                        : "not measurable yet"}
+                    </td>
+                    <td className="cell-sub">
+                      {measured
+                        ? meta.basis?.(outcomeCount) || "measured"
+                        : meta.needs || "awaiting data"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

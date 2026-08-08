@@ -211,9 +211,7 @@ async def build_fleet(limit: int = 6) -> dict[str, Any]:
             status = _STATUS_ON_ROUTE
 
         departure_at = _departure_for(profile, prediction.predicted_total_minutes)
-        eta_clock = (
-            departure_at + timedelta(minutes=prediction.predicted_total_minutes)
-        ).strftime("%H:%M")
+        arrival = _arrival(departure_at, prediction, progress, path.stops)
 
         trucks.append(
             {
@@ -221,7 +219,7 @@ async def build_fleet(limit: int = 6) -> dict[str, Any]:
                 "driver": _driver_name(profile.profile_id if profile else truck_id),
                 "route": f"{origin} to {destination}",
                 "status": status,
-                "eta": eta_clock,
+                "eta": arrival["eta"],
                 "load": load,
                 "progress": progress,
                 "position": position,
@@ -248,6 +246,9 @@ async def build_fleet(limit: int = 6) -> dict[str, Any]:
                 "soft_violations": [c.detail for c in report.soft_violations],
                 "delay_factors": [f.describe() for f in prediction.factors],
                 "departure": departure_at.strftime("%H:%M"),
+                # deliver_by is the commitment; eta above is the live projection,
+                # and the eta_* fields are the arithmetic behind it.
+                **{key: value for key, value in arrival.items() if key != "eta"},
                 "routes_considered": len(paths),
                 "fleet_searched": len(profiles),
                 **_trip_detail(path, prediction, progress, profile, coordinates),
@@ -298,8 +299,22 @@ def _simulate_telemetry(
     consumption_per_km = _pct(1, 0.12, 0.22)  # percent per km
     fuel_level = round(max(fuel_full - covered_km * consumption_per_km, 8.0), 1)
 
-    # Speed: realistic range for Kerala roads, reduced near stops
-    base_speed = _pct(2, 35.0, 72.0)
+    # Instantaneous speed, anchored to the corridor's own measured average.
+    #
+    # This used to be a free draw between 35 and 72 km/h with no connection to
+    # the route, so a lane averaging 24.6 km/h could report a vehicle "currently"
+    # doing 62.7 km/h — 2.5x its own corridor average, on the same screen as the
+    # ETA that used the real figure. A moving vehicle does run above the corridor
+    # average (which absorbs junctions and stops), but by a plausible margin, not
+    # an arbitrary one. So the margin is what varies, and the anchor is real.
+    corridor_kmh = (
+        distance_km / (prediction.free_flow_minutes / 60)
+        if prediction.free_flow_minutes
+        else 0.0
+    )
+    base_speed = corridor_kmh * _pct(2, 1.05, 1.45) if corridor_kmh > 0 else _pct(
+        2, 35.0, 72.0
+    )
     if progress > 90 or progress < 5:
         base_speed *= 0.4  # slowing near origin/destination
     current_speed = round(base_speed, 1)
@@ -428,6 +443,145 @@ def _trip_detail(path, prediction, progress: int, profile, coordinates) -> dict[
     }
 
 
+#: Arrival within this many minutes of the commitment is reported "at risk"
+#: rather than on time — a dispatcher wants the warning before the breach.
+_SLA_AT_RISK_MINUTES = 15.0
+
+
+def _remaining_buffer(
+    prediction, stops: list[str], progress: int, remaining_share: float
+) -> tuple[float, list[dict[str, Any]]]:
+    """The delay still ahead of the vehicle, itemised.
+
+    Each factor the delay model produced is either tied to a place — an incident
+    at a named location — or applies across the whole journey, like weather or
+    peak-hour congestion. A place-bound factor only counts if that place is still
+    in front of the vehicle; a journey-wide one is pro-rated over the distance
+    left to run. Anything already driven past is no longer a delay to arrival.
+    """
+
+    reached = min(int(max(len(stops) - 1, 0) * progress / 100), max(len(stops) - 1, 0))
+    ahead = {stop.lower() for stop in stops[reached + 1 :]}
+
+    items: list[dict[str, Any]] = []
+    total = 0.0
+    for factor in prediction.factors:
+        minutes = float(factor.minutes or 0.0)
+        if minutes <= 0:
+            continue
+        name = factor.name or ""
+        placed = [stop for stop in ahead if stop and stop in name.lower()]
+        if placed:
+            applies = minutes
+            scope = "ahead"
+        elif any(stop.lower() in name.lower() for stop in stops):
+            # Named a place the vehicle has already passed.
+            continue
+        else:
+            applies = minutes * remaining_share
+            scope = "journey"
+        if applies < 0.05:
+            continue
+        total += applies
+        items.append(
+            {
+                "name": name,
+                "minutes": round(applies, 1),
+                "scope": scope,
+                "evidence": factor.evidence,
+                "observed": factor.observed,
+            }
+        )
+
+    items.sort(key=lambda item: -item["minutes"])
+    return round(total, 1), items
+
+
+def _arrival(
+    departure_at: datetime,
+    prediction,
+    progress: int,
+    stops: list[str],
+) -> dict[str, Any]:
+    """Projected arrival, built from speed over the distance still to run.
+
+    ETA is computed the way a driver would: how far is left, how fast does this
+    corridor actually move, and what is known to be in the way. So
+
+        eta = now + (remaining_km / effective_speed) + buffer_still_ahead
+
+    The speed is measured where live traffic was available and derived from the
+    graph's road classes otherwise, and the buffer is the itemised delay ahead of
+    the vehicle — which is what makes the ETA move when an incident is cleared.
+
+    ``deliver_by`` is reported separately and is a different thing: the
+    commitment the plan was built around. Conflating the two is what made the ETA
+    column uninformative before — ``_departure_for`` picks the departure that
+    lands the vehicle exactly at the end of its delivery window, so
+    ``departure + transit`` was always that window's closing time by
+    construction, identical for every vehicle on the profile whatever its route.
+
+    The position this projects from is derived, not observed: the dataset has no
+    telemetry. The speed, the distance and the buffer are all real.
+    """
+
+    total = float(prediction.predicted_total_minutes or 0.0)
+    distance_km = float(prediction.distance_km or 0.0)
+    free_flow = float(prediction.free_flow_minutes or 0.0)
+
+    share = 1 - min(max(progress, 0), 100) / 100
+    remaining_km = round(distance_km * share, 1)
+
+    # Effective speed over this corridor: measured when the live traffic call
+    # succeeded, otherwise the road-class estimate from the graph.
+    speed_kmh = round(distance_km / (free_flow / 60), 1) if free_flow > 0 else 0.0
+
+    base_minutes = round(remaining_km / speed_kmh * 60, 1) if speed_kmh > 0 else 0.0
+    buffer_minutes, buffer_items = _remaining_buffer(
+        prediction, stops, progress, share
+    )
+
+    now = datetime.now()
+    eta_at = now + timedelta(minutes=base_minutes + buffer_minutes)
+    committed_at = departure_at + timedelta(minutes=total)
+
+    # `_departure_for` rolls to tomorrow's window once today's has passed, so the
+    # commitment can sit on a different date from the projected arrival. Only the
+    # clock time is the promise, so compare both on the arrival's own date —
+    # otherwise the difference picks up a whole day and reads as ~-24 h.
+    committed_today = datetime.combine(eta_at.date(), committed_at.time())
+    delta = round((eta_at - committed_today).total_seconds() / 60, 1)
+    # Guard the midnight boundary: these are same-day corridors, so a difference
+    # beyond half a day means the two landed either side of midnight.
+    if delta > 720:
+        delta = round(delta - 1440, 1)
+    elif delta < -720:
+        delta = round(delta + 1440, 1)
+
+    if delta > _SLA_AT_RISK_MINUTES:
+        sla = "late"
+    elif delta > 0:
+        sla = "at_risk"
+    else:
+        sla = "on_time"
+
+    return {
+        "eta": eta_at.strftime("%H:%M"),
+        "deliver_by": committed_at.strftime("%H:%M"),
+        "transit_minutes": round(total, 1),
+        "minutes_remaining": round(base_minutes + buffer_minutes, 1),
+        # --- how the ETA was arrived at, for the UI to show ---
+        "eta_remaining_km": remaining_km,
+        "eta_speed_kmh": speed_kmh,
+        "eta_speed_source": prediction.baseline_source,
+        "eta_base_minutes": base_minutes,
+        "eta_buffer_minutes": buffer_minutes,
+        "eta_buffer": buffer_items,
+        "sla_delta_minutes": delta,
+        "sla_status": sla,
+    }
+
+
 def _departure_for(profile, transit_minutes: float) -> datetime:
     """The latest departure that still lands inside the delivery window.
 
@@ -509,6 +663,17 @@ def _depot_truck(truck_id, profile, origin, destination, load, reason) -> dict[s
         "route": f"{origin} to {destination}",
         "status": _STATUS_DEPOT,
         "eta": "—",
+        "deliver_by": "—",
+        "transit_minutes": None,
+        "minutes_remaining": None,
+        "eta_remaining_km": None,
+        "eta_speed_kmh": None,
+        "eta_speed_source": None,
+        "eta_base_minutes": None,
+        "eta_buffer_minutes": None,
+        "eta_buffer": [],
+        "sla_delta_minutes": None,
+        "sla_status": None,
         "load": load,
         "progress": 0,
         "position": None,

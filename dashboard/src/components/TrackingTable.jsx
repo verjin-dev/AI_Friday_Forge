@@ -20,6 +20,13 @@ const STATUS_TONE = {
   "At depot": "var(--rose)",
 };
 
+//: Whether the live ETA still meets the delivery commitment.
+const SLA_TONE = {
+  on_time: "var(--emerald)",
+  at_risk: "var(--amber)",
+  late: "var(--rose)",
+};
+
 const COLUMNS = [
   { key: "id", label: "Truck / driver", sortable: true },
   { key: "route", label: "Route", sortable: true },
@@ -215,10 +222,18 @@ export default function TrackingTable({
                   </td>
 
                   <td>
-                    {truck.eta}
-                    {truck.delayMinutes > 0 && (
-                      <div className="cell-sub" style={{ color: "var(--amber)" }}>
-                        +{Math.round(truck.delayMinutes)} min
+                    <span style={{ color: SLA_TONE[truck.slaStatus] || undefined }}>
+                      {truck.eta}
+                    </span>
+                    {truck.deliverBy && truck.deliverBy !== "—" && (
+                      <div className="cell-sub">
+                        by {truck.deliverBy}
+                        {truck.etaBufferMinutes > 0 && (
+                          <span style={{ color: "var(--amber)" }}>
+                            {" "}
+                            · +{Math.round(truck.etaBufferMinutes)} min buffer
+                          </span>
+                        )}
                       </div>
                     )}
                   </td>

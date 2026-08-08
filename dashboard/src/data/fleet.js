@@ -29,6 +29,18 @@ function normaliseTruck(truck) {
     route: truck.route,
     status: truck.status,
     eta: truck.eta,
+    // --- how the ETA was arrived at: speed over the distance left, plus the
+    // itemised delay still ahead of the vehicle ---
+    deliverBy: truck.deliver_by,
+    slaStatus: truck.sla_status,
+    slaDeltaMinutes: truck.sla_delta_minutes,
+    transitMinutes: truck.transit_minutes,
+    etaRemainingKm: truck.eta_remaining_km,
+    etaSpeedKmh: truck.eta_speed_kmh,
+    etaSpeedSource: truck.eta_speed_source,
+    etaBaseMinutes: truck.eta_base_minutes,
+    etaBufferMinutes: truck.eta_buffer_minutes,
+    etaBuffer: truck.eta_buffer || [],
     load: truck.load,
     progress: truck.progress ?? 0,
     position: truck.position || null,

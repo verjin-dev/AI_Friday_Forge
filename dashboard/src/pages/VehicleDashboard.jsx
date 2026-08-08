@@ -21,14 +21,36 @@ import { fetchFleet } from "../data/fleet.js";
 
 const TOAST_MS = 3600;
 
-function KV({ k, v, muted }) {
+function KV({ k, v, muted, tone }) {
   return (
     <div className="kv-item">
       <span className="k">{k}</span>
-      <span className={`v ${muted ? "muted" : ""}`}>{v}</span>
+      <span
+        className={`v ${muted ? "muted" : ""}`}
+        style={tone ? { color: tone } : undefined}
+      >
+        {v}
+      </span>
     </div>
   );
 }
+
+const SLA_TONE = {
+  on_time: "var(--emerald)",
+  at_risk: "var(--amber)",
+  late: "var(--rose)",
+};
+
+const SLA_LABEL = { on_time: "on time", at_risk: "at risk", late: "late" };
+
+const slaSummary = (truck) => {
+  if (!truck?.slaStatus) return "—";
+  const label = SLA_LABEL[truck.slaStatus] || truck.slaStatus;
+  if (truck.slaDeltaMinutes == null) return label;
+  const value = Math.abs(Math.round(truck.slaDeltaMinutes));
+  if (value === 0) return `${label} · on the minute`;
+  return `${label} · ${value} min ${truck.slaDeltaMinutes > 0 ? "over" : "spare"}`;
+};
 
 export default function VehicleDashboard({
   session,
@@ -163,9 +185,71 @@ export default function VehicleDashboard({
               <KV k="Next stop" v={truck?.next_stop || "—"} />
               <KV k="Distance left" v={`${truck?.distance_remaining_km ?? 0} km`} />
               <KV k="Departure" v={truck?.departure || "—"} />
-              <KV k="Planned arrival" v={truck?.eta || "—"} />
+              <KV
+                k="ETA (live)"
+                v={truck?.eta || "—"}
+                tone={SLA_TONE[truck?.slaStatus]}
+              />
+              <KV k="Deliver by" v={truck?.deliverBy || "—"} />
+              <KV
+                k="Against the window"
+                v={slaSummary(truck)}
+                tone={SLA_TONE[truck?.slaStatus]}
+              />
             </div>
           </section>
+
+          {truck?.etaBaseMinutes != null && (
+            <section className="card">
+              <div className="panel-head">
+                <h3>How this ETA is calculated</h3>
+                <span className="sub">
+                  {truck.etaSpeedSource === "live" ? "live traffic" : "road class"}
+                </span>
+              </div>
+              <div className="kv-list">
+                <KV
+                  k="Distance left"
+                  v={`${truck.etaRemainingKm} km of ${truck.distanceKm} km`}
+                />
+                <KV
+                  k="Average speed"
+                  v={`${truck.etaSpeedKmh} km/h`}
+                  tone={
+                    truck.etaSpeedSource === "live" ? "var(--cyan)" : undefined
+                  }
+                />
+                <KV k="Driving time" v={`${Math.round(truck.etaBaseMinutes)} min`} />
+                <KV
+                  k="Delay still ahead"
+                  v={`+${Math.round(truck.etaBufferMinutes ?? 0)} min`}
+                  tone={
+                    truck.etaBufferMinutes > 0
+                      ? "var(--amber)"
+                      : "var(--emerald)"
+                  }
+                />
+              </div>
+              {truck.etaBuffer?.length > 0 && (
+                <ul className="factor-list">
+                  {truck.etaBuffer.map((item, index) => (
+                    <li key={index} title={item.evidence || ""}>
+                      <strong style={{ color: "var(--amber)" }}>
+                        +{Math.round(item.minutes)} min
+                      </strong>{" "}
+                      {item.name}
+                      {item.scope === "journey" && (
+                        <span style={{ color: "var(--text-faint)" }}>
+                          {" "}
+                          · across the journey
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           <section className="card">
             <div className="panel-head">
